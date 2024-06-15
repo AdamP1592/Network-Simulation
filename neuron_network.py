@@ -1,9 +1,20 @@
 
 class neuron_network():
-    def __init__(self, num_neurons: int, num_synapses: int):
+    def __init__(self, num_neurons: int):
         self.__num_neurons = num_neurons
 
+        self.setup_neurons()
+        self.setup_synapses()
+
+        print(self.neurons)
+        print(self.synapses)
+
     #synapses should be generated within the groupings by mean
+    def iterate(self):
+        for i in self.neurons:
+            i.update()
+
+        
 
     def euclid_distance(data0, data1):
         #data0 and data1 have to have matching lengths
@@ -18,28 +29,24 @@ class neuron_network():
         distance = math.sqrt(distance)
     
     
-    def setup_synapses(self, positions):
+    def setup_synapses(self):
         import numpy as np
+        import generate_synapses
+        from synapse import synapse
         #positions are (x, y)
-        max_groups = 12
-        num_groups = 1
+        max_size = 5
 
+        #modify this to be setting neuron_x, neuron_y values
+        soma_x = np.random.rand(self.__num_neurons) * max_size
+        soma_y = np.random.rand(self.__num_neurons) * max_size
 
-        soma_size = 0.2
+        soma_points =  [(soma_x[i], soma_y[i]) for i in range(self.__num_neurons)]
 
-        max_dendrite_length = 2 * soma_size
-        dendrite_radius = np.pi/4 # 45 degrees
+        synapse_dict = generate_synapses.create_synapses(soma_points)
+        for pre_synaptic_neuron_index in synapse_dict.keys():
+            syn = synapse(self.neurons[pre_synaptic_neuron_index])
 
-        max_axon_length = 4 * soma_size
-
-        axon_radius = np.pi / 6 #30 degrees
-        axon_direction = np.pi/4
-
-        axon_angle_1 = axon_direction + (axon_radius / 2)
-        axon_angle_2 = axon_direction - (axon_radius / 2)
-
-        m1 = np.tan(axon_angle_1)
-        m2 = np.tan(axon_angle_2)
+            
 
         
 
@@ -53,7 +60,7 @@ class neuron_network():
         import neuron_models
         import json
         current_max_neurons = 50 #only 50 prepared neurons
-
+        
         params = []
         #   ena, ek, eleak 
         #   gna, gk, gleak
@@ -70,47 +77,35 @@ class neuron_network():
 
         parameters = np.random.choice(params,self.__num_neurons)
 
-        print(parameters)
-        neurons_positions = np.random.rand((self.__num_neurons))
         dt = 0.01
         self.neurons = []
 
 
         for i in range(self.__num_neurons):
-            
-            neuron_params_dict = parameters[i]
-            resting, action_thresh = neuron_params_dict['vrest'], neuron_params_dict['vthresh']
+            #neuron parameters, currently gk, gna, gleak, ek, ena, eleak, c, vthresh, vrest
 
-            neuron = neuron_models.hodgkin_huxley(action_thresh, resting, dt=dt)
+            neuron_params_dict = parameters[i]
+            resting_potential, action_thresh = neuron_params_dict['vrest'], neuron_params_dict['vthresh']
+
+            neuron = neuron_models.hodgkin_huxley(action_thresh, resting_potential, dt=dt)
             neuron.set_params(neuron_params_dict)
 
             self.neurons.append(neuron)
 
-        print(len(self.neurons))
-        for i in self.neurons:
-            break
-        
+
+    def update(self):
+        pass
+        #neuron gets updated
+        #neuron synapse recieves neuron firing the following step
+        #synapse adapts to this new v
+        #synaptic conductance changes
+        #update synaptic conductance
+        #neurons get updates
+
 import numpy as np
     
 if __name__ == '__main__':
-    import generate_synapses
 
-    network = neuron_network(5, 10)
+    network = neuron_network(10)
 
-
-    network.setup_neurons()
-
-
-    max_size = 1.5
-    num_neurons = 10
-    soma_points = []
-
-    #modify this to be setting neuron_x, neuron_y values
-    soma_x = np.random.rand(num_neurons) * max_size
-    soma_y = np.random.rand(num_neurons) * max_size
-
-    soma_points =  [(soma_x[i], soma_y[i]) for i in range(num_neurons)]
-
-    synapses = generate_synapses.generate_synapses(soma_points)
-
-    print(synapses)
+    #print(synapses)
