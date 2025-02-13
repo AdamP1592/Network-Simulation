@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <!-- ONLY PLACE NON REFERENCING SCRIPTS IN THE HEADER-->
+        <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+        
+        <!---->
+      
+        <link rel="stylesheet" href="{{url_for('static', filename='home/home.css') }}">
+        
+        <!--navigation style and js-->
+
+        <link rel="stylesheet" href="{{url_for('static', filename='nav/nav.css') }}"></style>
+
+    </head>
+    
+    <body>
+
+        {% include 'nav.html' %}
+        <main>
+            <h1>Hello, I am Adam Peterson</h1>
+
+            <p>
+                This is my Neuron Simulation!<br> It was made using hodgkin huxley neuron model
+                connected using tsodyks markram synapse models.
+            </p>
+
+            <button id="start_sim_home_btn"> Lets get started!</button>
+        </main>
+
+        
+        <script src="{{url_for('static', filename='home/home.js') }}"></script>
+        <script src="{{url_for('static', filename='nav/nav.js') }}"></script>
+    </body>
+    
+</html>

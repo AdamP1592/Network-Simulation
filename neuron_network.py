@@ -31,8 +31,8 @@ class neuron_network():
     
     def setup_synapses(self):
         import numpy as np
-        import generate_synapses
-        from synapse import synapse
+        import synapse_models.generate_synapses as generate_synapses
+        from synapse_models.synapse import synapse
         #positions are (x, y)
         max_size = 5
 
@@ -94,7 +94,9 @@ class neuron_network():
 
 
     def update(self):
-        pass
+        for i in self.neurons:
+            i.update()
+            
         #neuron gets updated
         #neuron synapse recieves neuron firing the following step
         #synapse adapts to this new v

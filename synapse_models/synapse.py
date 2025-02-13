@@ -1,12 +1,7 @@
 class tsodyks_markram_synapse():
-    r = 0
-    r_past = 0
-    u = 0.1
-    u_past = 0
-    t = 0
 
-    def __init__(self, pre_synaptic_neurons, post_synaptic_neurons, dt= 0.01):
-
+    def __init__(self, pre_synaptic_neurons, post_synaptic_neurons, params, dt= 0.01):
+        self.r, self.r_past, self.u, self.u_past, self.t = 1, 1, 0, 0, 0
         #
         self.dt = dt
         self.pre_synaptic_neurons = pre_synaptic_neurons
@@ -15,41 +10,40 @@ class tsodyks_markram_synapse():
         self.past_spike_times = [None for i in range(len(self.pre_synaptic_neurons))]
         self.is_active = [False for i in range(len(self.pre_synaptic_neurons))]
 
-        self.setup_activation_params()
+        self.setup_activation_params(params)
+            
 
-    def setup_activation_params(self):
+    def setup_activation_params(self, params):
+
+
+        """
+        params = {"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
+                   "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
+        """
+        
         self.action_potential_thresholds = []
         for i in self.pre_synaptic_neurons:
             self.action_potential_thresholds.append(i.action_potential_threshold)
 
         #params = [tau_recvoery, tau_facilitation, max_utilization, max_conductance]
-        #u will always start at zero because this is a completely generated simulation so there
-        #is no past activity
-        params = {"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
-                   "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
-        ampa_params = params["ampa"]
 
-        self.tau_r = ampa_params["tau_recovery"][0]
-        self.tau_f = ampa_params["tau_facilitation"][0]
-        self.u_max = ampa_params["u_max"][1]
-        self.reversal_potential = ampa_params["e"][1]
-        self.g_max = ampa_params["g_max"][1]
+
+        self.tau_r = params["tau_recovery"][0]
+        self.tau_f = params["tau_facilitation"][1]
+        self.u_max = params["u_max"][1]
+        self.u = params["u"][0]
+        self.reversal_potential = params["e"][1]
+        self.g_max = params["g_max"][1]
         self.g_syn = 0
+        self.r = 1
 
         #tau and umax are inversely related 
         #facilitation dominated synapses are generally larger, which mean
         #so the larger the synapse, the more facilitatiion based it is
         #the more active a synapse the lower both tau_facilitate is and the lower tau_recovery
-
     
-
-
-
-    #check if v is above vthresh
-    #if it is, and there isn't already an ongoing spike
-    #  then the spike time for the current neuron is the current t
-    #to tell if there is an ongoing spike check if mem potential is greater than vthresh
-    #if it is there is an active spike. Once v returns to vrest the spike is over
+    #checks if each of the pre synaptic neurons is active and 
+    #updates spike times of each of the pre synaptic neurons to reflect the recent spike.
     def update_spike_times(self):
         for i in range(len(self.pre_synaptic_neurons)):
             neuron = self.pre_synaptic_neurons[i]
@@ -66,7 +60,6 @@ class tsodyks_markram_synapse():
             
     def update(self):
         self.update_spike_times()
-        #check if current v
         dirac_sum = 0
         has_past_spike = False
         for i in range(len(self.pre_synaptic_neurons)):
@@ -86,8 +79,8 @@ class tsodyks_markram_synapse():
             drdt = (1 - self.r) / self.tau_r
             dudt = (- self.u / self.tau_f) 
 
-            self.r = drdt * self.dt
-            self.u = dudt * self.dt
+            self.r += drdt * self.dt
+            self.u += dudt * self.dt
 
 
         self.r_past = self.r
@@ -95,9 +88,12 @@ class tsodyks_markram_synapse():
 
         self.g_syn = self.g_max * self.r * self.u
 
-        for neuron in self.post_synaptic_neurons:
+        currents = {}
+        for i in range(len(self.post_synaptic_neurons)):
+            neuron = self.post_synaptic_neurons[i]
             i_syn = self.g_syn * (neuron.v - self.reversal_potential)
             neuron.i_syn += i_syn
+
 
         self.t += self.dt
 
@@ -134,14 +130,6 @@ class synapse_hh():
     def check_for_spike(self):
         from numpy import exp
         neuron = self.pre_synaptic_neruon
-        activation_thresh = neuron.action_potential_threshold
-
-        v_mid = (neuron.resting_potential + neuron.action_potential_threshold)/2
-    
-        p_release = 1/(1 + exp(- (neuron.v - v_mid)/self.k))
-
-
-
         #for the time being neurotransmitter release will only happen at the spiking
         #threshold, ***add graded potential neurotransmitter release***
 
@@ -161,4 +149,5 @@ class synapse_hh():
 
         for i in self.post_synaptic_neurons:
             i.i_syn += self.g_syn * (i.v - self.e)
+  
 

@@ -1,0 +1,38 @@
+#right_nav,
+.nav_button_container{
+    display:inline;
+    margin-right:5px;
+}
+nav{
+    height:5%;
+    width:100%;
+    background-color:#0BAB9D;
+    position:fixed;
+}
+
+.nav_button{
+    border:none;
+    background-color: #0BAB9D;
+    font-weight:600;
+}
+.nav_button:hover{
+    background-color: #0b998d;
+}
+.nav_button:active{
+    background-color: #117c73;
+}
+.nav_pressed{
+    color:#00ffe5;
+}
+#right_nav,
+.nav_button_container,
+.nav_button{
+    height:100%;
+    padding-left:10px;
+    padding-right:10px;
+}
+
+#right_nav{
+    float:right;
+    list-style: none;
+}

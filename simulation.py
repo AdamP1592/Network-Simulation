@@ -1,187 +1,183 @@
 class simulation():
+    default_neural_params = {'c': 1, "gk": 36.004631953926285, "gna": 119.91561331101256, "gleak": 0.2997385592373893, "ek": -82.03623253390188, "ena": 45.028284147345595, "eleak": -59.35717906013866, "c": 0.9998470285990088, "vrest": -59.35717564093531, "vthresh": 15.119047441363206}
+    #holders for neuron data
+
+    #{"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
+    # "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
+    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.7, 0.1], "u":[0.1], "e": [0, 0], "g_max": [0.3, 1]}
+    gaba_synapse_params = {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.3, 0.5], "u":[0.1], "e":[-75, -70], "g_max": [0.3, 1]}
     
-    #gating constants
-    eNa, eK, eLeak = 50, -77, -54.4
-    gNa, gK, gLeak = 120, 36, 0.3
-    #membrane cap
-    Cm = 1
+    def __init__(self, num_neurons:int, dt:float):
+        self.setup_sim(num_neurons, dt)
+    def setup_sim(self, num_neurons, dt):
+        self.num_neurons = num_neurons
 
-    #standard resting potential for neurons
-    resting_potential = -70
-    
-    input_current = 0
-    def __init__(self, vrest, vthresh, dt):
-        from neuron_models import hodgkin_huxley
-        self.model = hodgkin_huxley(vrest, vthresh, dt)
-
-        self.model.gK = self.gK
-        self.model.gNa = self.gNa
-        self.model.gLeak = self.gLeak
-        self.model.eK = self.eK
-        self.model.eNa = self.eNa
-        self.model.eLeak = self.eLeak
-        self.model.membrane_cap = self.Cm
-
-        self.input_current = 0
-        self.n, self.m, self.h, = [], [], []
-        self.v, self.input_currents  = [], []
-        
-        self.times = []
-        self.dt = dt
+        self.neuron_models, self.synapses, self.input_currents, self.membrane_potentials = [], [], [], []
         self.t = 0
-        self.input_current_func = self.default_input
-        self.i_syn = 0
-    def set_params(self, params:dict):
-        self.model.set_params(params)
-    def iterate(self, num_steps= 1):
-        for i in range(num_steps):
-            self.times.append(self.dt + self.t)
-            self.model.i_syn = self.i_syn
-            self.input_current = self.input_current_func(self.t)
-            self.input_currents.append(self.input_current)
 
-            self.model.update(self.input_current)
+        self.inputs = []
+        self.times = []
+        self.synapse_gs = []
+        self.largest_synapse_size = 0
+
+        
+        self.vs = [[] for i in range(num_neurons)]
+        self.dt = dt
+
+        self.input_current_functions = []
+        self.input_currents = []
+
+        self.setup_models()
+
+
+        #create each synapse
+
+
+    def interpolate(self, variable, min_val, max_val):
+        return (variable * (max_val-min_val)) + min_val
+    def __generate_activity_params(self, type:str, activation_modifier=1.0):
+        synapse_param_ranges = self.ampa_synapse_params
+        synapse_params = {}
+
+        if type == "gaba":
+            synapse_params = self.gaba_synapse_params
+
+
+        #tauf is proportional to tau r, but inversely to umax
+        for param_name in synapse_param_ranges.keys():
+            param_range = synapse_param_ranges[param_name]
             
-            self.n.append(self.model.n_gate.state)
-            self.m.append(self.model.m_gate.state)
-            self.h.append(self.model.h_gate.state)
+            synapse_params[param_name] = self.interpolate(activation_modifier, param_range[0], param_range[1])
 
-            self.v.append(self.model.v)
+
+    def create_synapse(self, pre_synaptic_neuron_indexes:list, post_synaptic_neuron_indexes:list, synapse_params = {}):
+        from synapse_models.synapse import tsodyks_markram_synapse
+        #activation multiplier should proportional to (number of in and out connections)/(largest synapse size)
+        activation_modifier = (len(pre_synaptic_neuron_indexes) + len(post_synaptic_neuron_indexes)) / self.num_neurons
+        if not synapse_params.keys():
+            synapse_params = self.ampa_synapse_params
+
+        size = len(pre_synaptic_neuron_indexes) + len(post_synaptic_neuron_indexes)
+        if size > self.largest_synapse_size:
+            self.largest_synapse_size = size
+
+        
+
+        #synapse models require neuron object
+        pre_synaptic_neurons = []
+        post_synaptic_neurons = []
+
+        for i in pre_synaptic_neuron_indexes:
+            pre_synaptic_neurons.append(self.neuron_models[i])
+    
+        for i in post_synaptic_neuron_indexes:
+            post_synaptic_neurons.append(self.neuron_models[i])
+
+        syn = tsodyks_markram_synapse(pre_synaptic_neurons, post_synaptic_neurons, synapse_params, self.dt)
+
+        self.synapse_gs.append([])
+        self.synapses.append(syn)
+        
+    def create_neuron(self, params = {}):
+        from neuron_models import hodgkin_huxley
+
+        model = hodgkin_huxley(params, self.dt)
+
+        model.set_no_current()
+
+        self.neuron_models.append(model)
+        self.input_currents.append([])
+
+    def setup_models(self, params=[]):
+        from neuron_models import hodgkin_huxley
+        
+        if self.num_neurons == 0:
+            raise Warning("Unregistered datapoint \'num_neurons\': {}". format(self.num_neurons))
+        
+        if params == []:
+            params.append(self.default_neural_params)
+
+        print(params)
+        for i in range(self.num_neurons):
+            
+            curr_params_dict = params[i % len(params)]
+
+            self.create_neuron(curr_params_dict)
+        
+
+    def iterate(self, num_steps = 1):
+        for i in range(num_steps):
+            for j in range(len(self.neuron_models)):
+                self.neuron_models[j].update()
+            
+                self.input_currents[j].append(self.neuron_models[j].input_current)
+                
+                self.vs[j].append(self.neuron_models[j].v)
+
+            for j in range(len(self.synapses)):
+                self.synapses[j].update()
+                self.synapse_gs[j].append(self.synapses[j].g_syn)
+
+            
+            self.times.append(self.dt + self.t)
             self.t+=self.dt
-            self.i_syn = 0
-    
-    def set_input_current(self, current_function):
-        self.input_current_func = current_function
 
-    def set_no_current(self):
-        self.input_current_func = lambda t: 0
-    def set_const_current(self, i):
-        from input_currents import constant_current
-        current = constant_current(i)
-        self.input_current_func = current.get_current
     def clear(self, num_steps):
-        past_current_func = self.input_current_func
-        self.set_no_current()
-        self.iterate(num_steps)
-        self.input_current_func = past_current_func
+        #clear each neuron of any current for a fixed num steps
+        for i in self.neuron_models:
+            past_current_func = i.input_current_func
+            
+            i.set_no_current()
+            self.iterate(num_steps)
+            i.input_current_func = past_current_func
 
-    #input current functions 
-    def default_input(self, t):
-        return 0
-    def square(self, t):
-        return 50
-    def sin(self, t):
-        import math
-        amplitude = 25
-        return (amplitude * math.sin(math.pi * t * 0.1) + amplitude)
-"""
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from matplotlib.widgets import RadioButtons
 
-    #sim setup
-    dt = 0.01
-    neuron_sim = simulation(dt)
+    def __setup_old_neuron(self, states, params, position, input_current_func, t, dt):
+                 
+        from neuron_models import hodgkin_huxley
+            #standard setup
+        neuron = hodgkin_huxley(params, dt)
 
-    #generating a mutable datatype so it can be used in set_current
-    input_types = {"Defaut":0, "Sin":1, "Square":2}
-    current_input_type = ["Default"]
-    #helper function for radio buttons
-    def set_current(input_type):
-        #sets the current input type to the index of it's type
-        current_input_type[0] = input_type
-        input_dict = {"Square": neuron_sim.square , "Sin": neuron_sim.sin, "None": neuron_sim.default_input}
-        neuron_sim.input_current_func = input_dict[input_type]
-    
-    #escape case events    
-    def on_press(event):
-        import sys
-        #clear event
-        sys.stdout.flush()
-
-        #why are you like this
-        if(event.key == " "):
-            from pathlib import Path
-            #savefig chooses to save two parent folders up, so set path directly
-            p = Path("simulation.py")
-            #current input type =  
-            fig.savefig("{}/demo/{}.png".format(str(p.parent.absolute()), current_input_type[0]))
-            print("saved")
-        if event.key=="escape":
-            exit()
-    def on_close(event):
-        exit()
-        #plot setup
-    plt.ion()
-    plt.show()
-    fig, ax_dict = plt.subplot_mosaic(
-                                AAD
-                                BBD
-                                CCD
-                                )
-    #break up each dict
-    ax0 = ax_dict["A"]
-    ax1 = ax_dict["B"]
-    ax2 = ax_dict["C"]
-    ax3 = ax_dict["D"]
-    #manager setup
-    manager = plt.get_current_fig_manager()
-    manager.resize(*manager.window.maxsize())
-
-    #some styling
-    fig.tight_layout()
-    fig.set_figwidth(13)
-    ax3.set_aspect(2.5)
-
-    #escape cases
-    fig.canvas.mpl_connect('key_press_event', on_press)
-    fig.canvas.mpl_connect('close_event', on_close)
-
-    #setup for radio buttons
-    current_radio_buttons = RadioButtons(ax3, ["None", "Square", "Sin"])
-    current_radio_buttons.on_clicked(set_current)
-
-    #could not update y_data and still reload the graph, so this is what you get
-    #no idea why
-    i = 0
-    while(i < 10000):
-        #clears data points
-        ax0.cla()
-        ax1.cla()
-        ax1.cla()
-        ax2.cla()
-        #resets lables after being cleared
-        ax0.set_ylabel("Potential(mv)")
-        ax1.set_ylabel("Activation")
-        ax2.set_ylabel("Current (µA/cm²)")
         
-        #redraw after every 10 steps
-        for j in range(100):
-            neuron_sim.iterate()
 
-        #limit how many datapoints can be seen at once time
-        num_datapoints = len(neuron_sim.times)
-        past_range = 6000
-        if num_datapoints < past_range:
-            past_range = num_datapoints
-       
+        #load existing states
+        neuron.t = t
+
+        neuron.v = states["v"]
         
-        #plots data
-        x = neuron_sim.times[num_datapoints - past_range:]
+        n, alpha_n, beta_n = states["n"]
+        m, alpha_m, beta_m = states["m"]
+        h, alpha_h, beta_h = states["h"]
 
-        ax0.plot(x, neuron_sim.v[num_datapoints - past_range:])
+        x, y = position
 
-        ax1.plot(x, neuron_sim.m[num_datapoints - past_range:])
-        ax1.plot(x, neuron_sim.n[num_datapoints - past_range:])
-        ax1.plot(x, neuron_sim.h[num_datapoints - past_range:])
+        neuron.n_gate.state = n
+        neuron.n_gate.alpha = alpha_n
+        neuron.n_gate.beta = beta_n
 
-        ax2.plot(x, neuron_sim.input_currents[num_datapoints - past_range:])
-        plt.draw()
+        neuron.m_gate.state = m
+        neuron.m_gate.alpha = alpha_m
+        neuron.m_gate.beta = beta_m
 
-        plt.pause(0.005)
-    
+        neuron.h_gate.state = h
+        neuron.h_gate.alpha = alpha_h
+        neuron.h_gate.beta = beta_h
 
-        i+=1
-    plt.close()
+        neuron.input_current_func = input_current_func
+        
+        neuron.x, neuron.y = x, y
 
-"""
+        self.neurons_models.append(neuron)
+        self.vs.append([])
+
+
+    def setup_old_instance(self, neuron_models_params:list, neuron_model_states:list, neuron_models_positions:list, input_currents:list, synapses_params, synapses_states, synapses_postions, t, dt):
+        #create each neuron
+
+        self.setup_sim(0, dt)
+
+        for i in range(len(neuron_models_params)):
+           
+            self.__setup_old_neuron(neuron_model_states[i], neuron_models_params[i], neuron_models_positions[i], t, dt)
+        
+

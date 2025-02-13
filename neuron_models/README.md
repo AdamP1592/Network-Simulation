@@ -1,5 +1,7 @@
-# Network-Simulation
-A simulated network of neurons with stimulation
+# Neuron Models
+
+Models of neurons used for simulations.
+
 Neuron Model:
     |
     GATE:
