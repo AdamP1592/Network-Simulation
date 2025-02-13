@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <!-- ONLY PLACE NON REFERENCING SCRIPTS IN THE HEADER-->
+        <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+        
+        <!--home style-->
+      
+        <link rel="stylesheet" href="{{url_for('static', filename='home/home.css') }}">
+        
+        <!--navigation style-->
+
+        <link rel="stylesheet" href="{{url_for('static', filename='nav/nav.css') }}"></style>
+
+    </head>
+    
+    <body>
+
+        {% include 'nav.html' %}
+        <main>
+
+            <!-- holder for inserting connection to other snippets-->
+            %%
+            
+        </main>
+        
+        <script src="{{url_for('static', filename='home/home.js') }}"></script>
+        <script src="{{url_for('static', filename='nav/nav.js') }}"></script>
+    </body>
+    
+</html>

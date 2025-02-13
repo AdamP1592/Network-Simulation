@@ -6,6 +6,7 @@
 nav{
     height:5%;
     width:100%;
+    min-height: 28px;
     background-color:#0BAB9D;
     position:fixed;
 }
