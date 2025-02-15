@@ -20,18 +20,22 @@ app = Flask(__name__)
 def templates(filename):
     #for dynamically passing html templates via urlfor so they can get renderd with jinja as they are passed
     return render_template("graph.html")
+
+
+
+    template = render_template("background.html")
+
+    template_connection = "{" + "% include '{}.html' %".format(page_route_str) + "}"
+
+    style_connection = {}
+
+    template = template.replace("%%", template_connection)
 """
 
 
 def build_page(page_route_str):
-    template = render_template("background.html")
 
-    connection = "{" + "% include '{}.html' %".format(page_route_str) + "}"
-
-    print(connection, file=sys.stderr)
-
-    template = template.replace("%%", connection)
-    return template
+    return render_template("background.html")
 
 @app.route("/")
 def page_load():
@@ -43,18 +47,15 @@ def get_nav_template():
 
 @app.route("/simulation")
 def get_graph_template():
-    built_page = build_page("simulation")
-    return render_template_string(built_page)
+    return render_template("background.html", page_name=f"simulation.html")
 
 @app.route("/home")
 def home():
-    built_page = build_page("home")
-    return render_template_string(built_page)
+    return render_template("background.html", page_name=f"home.html")
 
 @app.route("/about")
 def about():
-    built_page = build_page("about")
-    return render_template_string(built_page)
+    return render_template("background.html", page_name=f"about.html")
 
 
 

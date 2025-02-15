@@ -9,6 +9,7 @@ nav{
     min-height: 28px;
     background-color:#0BAB9D;
     position:fixed;
+    z-index: 1000;
 }
 
 .nav_button{
