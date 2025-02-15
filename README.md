@@ -12,7 +12,6 @@ Neuron Model:
         USE:
             n_gate = gate()
             n_gate.set_infinite_state()
-
             n.update(dt)
 
     |
