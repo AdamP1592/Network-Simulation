@@ -1,5 +1,6 @@
 # Network-Simulation
 A simulated network of neurons with stimulation
+<main>
 Neuron Model:
     |
     GATE:
@@ -13,13 +14,11 @@ Neuron Model:
             n_gate = gate()
             n_gate.set_infinite_state()
             n.update(dt)
-
     |
     Hodgkin_huxley_neuron:
         **NOTES**
             Steady-state dynamics model, will not update any values set like resting voltage or action potential threshold. 
-
-        
+            
         Required Input:
             params: dictionary of neuron parameters
                 g: the max membrane conductances of each ion channel
@@ -50,7 +49,7 @@ Neuron Model:
             n.v: membrane potential
 
             n.i_syn: sum total of synaptic input
-
+</main>
         Use:
             n = neuron(dict_of_parameters) #default dt
 
