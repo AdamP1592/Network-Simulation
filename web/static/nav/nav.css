@@ -1,17 +1,31 @@
-#right_nav,
-.nav_button_container{
-    display:inline;
-    margin-right:5px;
+
+nav>ul{
+
+    height:5vh;
+    min-height:28px;
+
+    display:flex;
+    align-items:center;
+
+    list-style:none;
 }
 nav{
-    height:5%;
+    height:5vh;
     width:100%;
-    min-height: 28px;
-    background-color:#0BAB9D;
-    position:fixed;
-    z-index: 1000;
-}
 
+    position:fixed;
+    min-height: 28px;
+    z-index: 1000;
+
+    background-color:#0BAB9D;
+
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+}
+#icon{
+    height:5vh;
+}
 .nav_button{
     border:none;
     background-color: #0BAB9D;
@@ -32,9 +46,4 @@ nav{
     height:100%;
     padding-left:10px;
     padding-right:10px;
-}
-
-#right_nav{
-    float:right;
-    list-style: none;
 }

@@ -1,6 +1,6 @@
 # Network-Simulation
 A simulated network of neurons with stimulation
-<main>
+
 Neuron Model:
     |
     GATE:
@@ -18,22 +18,22 @@ Neuron Model:
     Hodgkin_huxley_neuron:
         **NOTES**
             Steady-state dynamics model, will not update any values set like resting voltage or action potential threshold. 
-            
+        |
         Required Input:
             params: dictionary of neuron parameters
                 g: the max membrane conductances of each ion channel
                 e: the reversal potential 
                 {gk, gna, gleak, ek, ena, eleak}
-
+        |
         Variables:
             x, y postions
             v_rest: resting voltage
             v_thresh: action potential threshold
-
+        |
         Primary functions:
             (every .1ms)
-            n = neuron(dict_of_parameters, dt = 0.0001) 
 
+            n = neuron(dict_of_parameters, dt = 0.0001) 
 
             Defalt current setters,
                 ----- future version will have a text input for an equation that has the variables
@@ -49,7 +49,7 @@ Neuron Model:
             n.v: membrane potential
 
             n.i_syn: sum total of synaptic input
-</main>
+
         Use:
             n = neuron(dict_of_parameters) #default dt
 

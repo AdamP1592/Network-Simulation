@@ -1,0 +1,10 @@
+#main_graph{
+    width:100%;
+    height:80vh;
+    background-color:rgb(255, 255, 255);
+    
+}
+#chart_container{
+    width:100%;
+    height:100%;
+}
