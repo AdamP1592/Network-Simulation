@@ -11,6 +11,31 @@ class tsodyks_markram_synapse():
         self.is_active = [False for i in range(len(self.pre_synaptic_neurons))]
 
         self.setup_activation_params(params)
+
+    
+    def get_params(self):
+        syn_params = {
+            "state":{
+                "r":self.r,
+                "r_past": self.r_past,
+
+                "u": self.u,
+                "u_past": self.u_past,
+
+                "t":self.t
+            },
+            "params":{
+                "g_syn": self.g_syn,
+                "g_max": self.g_max,
+                "u_max": self.u_max,
+                "e": self.reversal_potential,
+                 
+
+            }
+
+
+        }
+        return syn_params
             
 
     def setup_activation_params(self, params):

@@ -1,20 +1,31 @@
+import {hsbColorRangeFinder} from './color_functions.js'
 
 
-//import * as echarts from 'echarts';
-const num_nodes = 6;
+//setup for 0: [1, 4, 5], 1: [5, 2], 2:[ 3, 5], 3: [4, 5]
+const connections = {n0:["s0"], n2:["s1"], s0:["n2", "n1"],  s1:["n4", "n3", "n5"]}
 
-const connections = {0: [1, 4, 5], 1: [5, 2], 2:[ 3, 5], 3: [4, 5]}
+const neurons = {n0:[5, 10], n1:[30, 10], n2:[10, 30], n3:[40, 20], n4: [30, 45], n5: [45, 50]}
 
-const positions = {0:[5, 10], 1:[30, 10], 2:[10, 30], 3:[40, 20], 4: [30, 45], 5: [45, 50]}
+const synapses = {s0:[8, 15], s1:[25, 35]}
 
+const positions = {...neurons, ...synapses}
+
+
+function get_data(){
+    return false;
+}
+//data processing
 function position_to_data_arr(positions){
     let position_ls = [];
+    let symbols = {n:"circle", s:"rect"}
     for (let name in positions){
         let position_obj = 
         {
             name:name.toString(),
             value:[positions[name][0], positions[name][1]],
-            label: "n" + name.toString()
+            label: name.toString(),
+            symbol: symbols[name[0]]
+
         }
         position_ls.push(position_obj)
     };
@@ -31,12 +42,18 @@ function get_connection_list(connections){
     return connection_list
 }
 
+function setUpNetwork(){
+    let numNeuronsStr = prompt("Please enter number of neurons:", "0");
 
-document.addEventListener("DOMContentLoaded", function () {
+    let numNeurons = parseInt(numNeuronsStr);
+
+}
+
+
+ function buildGraphs() {
+    setUpNetwork()
 
     let chart_container = document.getElementById('chart_container')
-
-
 
     let cons = get_connection_list(connections);
     let pos_ls = position_to_data_arr(positions);
@@ -79,8 +96,16 @@ document.addEventListener("DOMContentLoaded", function () {
         tooltip:{ 
             trigger:"item",
             formatter: function (params) {
+                console.log(params)
                 if (params.dataType === "node") {
-                    return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
+                    if(params.name.includes("n")){
+                        return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
+                    } else{
+                        return `Synapse: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
+
+                    }
+
+                
                 } else if (params.dataType === "edge") {
                     return `Synapse: <b>${params.data.source} → ${params.data.target}</b>`;
                 }
@@ -121,9 +146,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
             },
-
-
-
             { name: "Membrane Potential", type: "line", data: [2, 4, 3], xAxisIndex: 1, yAxisIndex: 1 }, // Right top chart
             { name: "Synapse Dynamics", type: "bar", data: [5, 2, 6], xAxisIndex: 2, yAxisIndex: 2 }  // Right bottom chart
         ]
@@ -135,5 +157,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }else{
         console.error("Echart instance failed to init")
     }
-    });
+}
 
+document.addEventListener("DOMContentLoaded",buildGraphs);

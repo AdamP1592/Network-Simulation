@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, render_template_string
+from flask import Flask, request, render_template, redirect, jsonify
 import sys, os
 from cachetools import TTLCache
 
@@ -47,6 +47,17 @@ def get_nav_template():
 
 @app.route("/simulation")
 def get_graph_template():
+    return render_template("background.html", page_name=f"simulation.html")
+
+
+@app.route("/simulation/startSim", methods=['POST'])
+def setupSim():
+    data = request.get_json()
+
+    if not data:
+        app.logger.warning("Error recieving sim setup data")
+
+    numNeurons = data["numNeurons"]
     return render_template("background.html", page_name=f"simulation.html")
 
 @app.route("/home")

@@ -38,10 +38,6 @@ class hodgkin_huxley(neuron):
     #implement gate class
     def __init__(self, params:dict, dt = 0.0001):
         self.x, self.y = 0, 0
-
-        #default value if no 
-        v_rest = -70
-        
         #state setup
         self.n_gate, self.m_gate, self.h_gate = gate(), gate(), gate()
         
@@ -181,9 +177,9 @@ class hodgkin_huxley(neuron):
         for i in gating_variables.keys():
             #stores each gating variable in a dictionary.
             current_gate = gating_variables[i]
-            gating_params["{i}_state"] = self.current_gate.state
-            gating_params["{i}_alpha"] = self.current_gate.alpha
-            gating_params["{i}_beta"] = self.current_gate.beta
+            gating_params[f"{i}_state"] = current_gate.state
+            gating_params[f"{i}_alpha"] = current_gate.alpha
+            gating_params[f"{i}_beta"] = current_gate.beta
 
 
         params['neuron'] = neural_params

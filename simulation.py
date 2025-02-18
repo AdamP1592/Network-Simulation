@@ -19,7 +19,6 @@ class simulation():
         self.times = []
         self.synapse_gs = []
         self.largest_synapse_size = 0
-
         
         self.vs = [[] for i in range(num_neurons)]
         self.dt = dt
@@ -54,6 +53,7 @@ class simulation():
         from synapse_models.synapse import tsodyks_markram_synapse
         #activation multiplier should proportional to (number of in and out connections)/(largest synapse size)
         activation_modifier = (len(pre_synaptic_neuron_indexes) + len(post_synaptic_neuron_indexes)) / self.num_neurons
+
         if not synapse_params.keys():
             synapse_params = self.ampa_synapse_params
 
@@ -79,7 +79,7 @@ class simulation():
         self.synapses.append(syn)
         
     def create_neuron(self, params = {}):
-        from neuron_models import hodgkin_huxley
+        from neuron_models.neuron_models import hodgkin_huxley
 
         model = hodgkin_huxley(params, self.dt)
 
@@ -89,7 +89,7 @@ class simulation():
         self.input_currents.append([])
 
     def setup_models(self, params=[]):
-        from neuron_models import hodgkin_huxley
+        from neuron_models.neuron_models import hodgkin_huxley
         
         if self.num_neurons == 0:
             raise Warning("Unregistered datapoint \'num_neurons\': {}". format(self.num_neurons))
@@ -134,7 +134,7 @@ class simulation():
 
     def __setup_old_neuron(self, states, params, position, input_current_func, t, dt):
                  
-        from neuron_models import hodgkin_huxley
+        from neuron_models.neuron_models import hodgkin_huxley
             #standard setup
         neuron = hodgkin_huxley(params, dt)
 
@@ -169,6 +169,25 @@ class simulation():
 
         self.neurons_models.append(neuron)
         self.vs.append([])
+    
+    def setup_old_synapses(self,  synapses_params, synapses_states, synapses_postions, t, dt):
+        pass
+
+
+    def generate_model_dict(self):
+        neurons = {}
+        synapses = {}
+        for i in range(len(self.neuron_models)):
+            neuron_params = self.neuron_models[i].get_params()
+
+            neuron_params["v"] = self.neuron_models[i].v
+            neurons[i] = neuron_params
+
+        
+        for i in range(len(self.synapses)):
+            synapses[i] = self.synapses[i].get_params()
+
+        return {"neurons": neurons, "synapses":synapses}
 
 
     def setup_old_instance(self, neuron_models_params:list, neuron_model_states:list, neuron_models_positions:list, input_currents:list, synapses_params, synapses_states, synapses_postions, t, dt):
