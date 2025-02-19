@@ -31,7 +31,7 @@ class neuron_network():
     
     def setup_synapses(self):
         import numpy as np
-        import synapse_models.generate_synapses as generate_synapses
+        import synapse_models.synapse_generator as synapse_generator
         from synapse_models.synapse import synapse
         #positions are (x, y)
         max_size = 5
@@ -42,7 +42,7 @@ class neuron_network():
 
         soma_points =  [(soma_x[i], soma_y[i]) for i in range(self.__num_neurons)]
 
-        synapse_dict = generate_synapses.create_synapses(soma_points)
+        synapse_dict = synapse_generator.create_synapses(soma_points)
         for pre_synaptic_neuron_index in synapse_dict.keys():
             syn = synapse(self.neurons[pre_synaptic_neuron_index])
 

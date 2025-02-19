@@ -10,7 +10,7 @@ class simulation():
     def __init__(self, num_neurons:int, dt:float):
         self.setup_sim(num_neurons, dt)
 
-        
+
     def setup_sim(self, num_neurons, dt):
         self.num_neurons = num_neurons
 

@@ -1,6 +1,6 @@
 from synapse_models.synapse import tsodyks_markram_synapse
 
-import synapse_models.generate_synapses as generate_synapses
+import synapse_models.synapse_generator as synapse_generator
 
 from simulation import simulation
 
@@ -18,8 +18,39 @@ def add_neuron(sim, params = None):
     sim.create_neuron()
 
 
-def create_sim(num_neurons):
+def create_sim(num_neurons, x_max, y_max):
+    from numpy import random
     sim = simulation(num_neurons, 0.001)
+
+    soma_xs = random.rand(num_neurons) * x_max
+    soma_ys = random.rand(num_neurons) * y_max
+
+    soma_points = []
+    for i in range(num_neurons):
+
+        sim.neuron_models[i].x = soma_xs[i]
+        sim.neuron_models[i].y = soma_ys[i]
+
+        soma_points.append((soma_xs[i], soma_ys[i]))
+
+    connections = synapse_generator.create_synapses(soma_points)
+
+    for con in connections:
+        pre_syn_neurons = con.hosts
+        post_syn_neurons = con.connections
+
+        synapse_position = con.get_center()
+
+        #use for probability of connection
+        x, y = con.get_area()
+
+        sim.create_synapse(pre_syn_neurons, post_syn_neurons)
+        #set position of last created neuron
+        sim.synapses[-1].x = x
+        sim.synapses[-1].y = y
+
+
+    
 
 
 def iterate_sim(sim_dict, duration):
@@ -34,10 +65,11 @@ def iterate_sim(sim_dict, duration):
 
     sim.iterate(num_steps)
 
-    
 
 if __name__ == '__main__':
-    
+    create_sim(5, 5, 5)
+
+    """
     dt = 0.001
     
     data = {"gk": 36.004631953926285, "gna": 119.91561331101256, "gleak": 0.2997385592373893, "ek": -82.03623253390188, "ena": 45.028284147345595, "eleak": -59.35717906013866, "c": 0.9998470285990088, "vrest": -59.35717564093531, "vthresh": 15.119047441363206}
@@ -73,4 +105,5 @@ if __name__ == '__main__':
     sim.setup_old_instance_from_dict(model_dict)
 
     sim.iterate()
+    """
 
