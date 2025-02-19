@@ -52,7 +52,6 @@ class simulation():
     def create_synapse(self, pre_synaptic_neuron_indexes:list, post_synaptic_neuron_indexes:list, synapse_params = {}):
         from synapse_models.synapse import tsodyks_markram_synapse
         #activation multiplier should proportional to (number of in and out connections)/(largest synapse size)
-        activation_modifier = (len(pre_synaptic_neuron_indexes) + len(post_synaptic_neuron_indexes)) / self.num_neurons
 
         if not synapse_params.keys():
             synapse_params = self.ampa_synapse_params
@@ -61,17 +60,8 @@ class simulation():
         if size > self.largest_synapse_size:
             self.largest_synapse_size = size
 
-        
-
         #synapse models require neuron object
-        pre_synaptic_neurons = []
-        post_synaptic_neurons = []
-
-        for i in pre_synaptic_neuron_indexes:
-            pre_synaptic_neurons.append(self.neuron_models[i])
-    
-        for i in post_synaptic_neuron_indexes:
-            post_synaptic_neurons.append(self.neuron_models[i])
+        pre_synaptic_neurons, post_synaptic_neurons = self.synaptic_connection_dict_builder(pre_synaptic_neuron_indexes, post_synaptic_neuron_indexes)
 
         syn = tsodyks_markram_synapse(pre_synaptic_neurons, post_synaptic_neurons, synapse_params, self.dt)
 
@@ -89,15 +79,13 @@ class simulation():
         self.input_currents.append([])
 
     def setup_models(self, params=[]):
-        from neuron_models.neuron_models import hodgkin_huxley
-        
+        import warnings
         if self.num_neurons == 0:
-            raise Warning("Unregistered datapoint \'num_neurons\': {}". format(self.num_neurons))
+            warnings.warn("Unregistered datapoint \'num_neurons\': {}". format(self.num_neurons))
         
         if params == []:
             params.append(self.default_neural_params)
 
-        print(params)
         for i in range(self.num_neurons):
             
             curr_params_dict = params[i % len(params)]
@@ -138,9 +126,7 @@ class simulation():
             #standard setup
         neuron = hodgkin_huxley(params, dt)
 
-        
-
-        #load existing states
+        #load existing state
         neuron.t = t
 
         neuron.v = states["v"]
@@ -167,31 +153,125 @@ class simulation():
         
         neuron.x, neuron.y = x, y
 
-        self.neurons_models.append(neuron)
+        self.neuron_models.append(neuron)
         self.vs.append([])
-    
-    def setup_old_synapses(self,  synapses_params, synapses_states, synapses_postions, t, dt):
-        pass
-
 
     def generate_model_dict(self):
         neurons = {}
         synapses = {}
+        network = {}
         for i in range(len(self.neuron_models)):
             neuron_params = self.neuron_models[i].get_params()
-
-            neuron_params["v"] = self.neuron_models[i].v
             neurons[i] = neuron_params
-
         
         for i in range(len(self.synapses)):
             synapses[i] = self.synapses[i].get_params()
 
-        return {"neurons": neurons, "synapses":synapses}
+        network = {"t": self.t, "dt":self.dt, "num_neurons": self.num_neurons}
+
+        return {"neurons": neurons, "synapses":synapses, "network": network}
+    
+    def store_model(self):
+        import json
+        with open("network.json", "w") as f:
+            f.write(self.generate_model_dict())
+
+    def __setup_old_neuron_from_dict(self, neuron_params, neuron_gate_params, t, dt):
+        from neuron_models.neuron_models import hodgkin_huxley
+        #standard setup
+            
+        neuron = hodgkin_huxley(neuron_params, dt)
+
+        #load existing states
+        neuron.t = t
+
+        neuron.v = neuron_params["v"]
+
+        neuron.n_gate.state = neuron_gate_params["n_state"]
+        neuron.n_gate.alpha = neuron_gate_params["n_alpha"]
+        neuron.n_gate.beta = neuron_gate_params["n_beta"]
+
+        neuron.m_gate.state = neuron_gate_params["m_state"]
+        neuron.m_gate.alpha = neuron_gate_params["m_alpha"]
+        neuron.m_gate.beta = neuron_gate_params["m_beta"]
+
+        neuron.h_gate.state = neuron_gate_params["h_state"]
+        neuron.h_gate.alpha = neuron_gate_params["h_alpha"]
+        neuron.h_gate.beta = neuron_gate_params["h_beta"]
+        
+        neuron.x, neuron.y = neuron_params["x"], neuron_params["y"]
+
+        neuron.set_no_current()
+        self.input_currents.append([])
+
+        self.neuron_models.append(neuron)
+        self.vs.append([])
+
+    def synaptic_connection_dict_builder(self, pre_synaptic_indicies, post_synaptic_indicies):
+        pre_synaptic_neurons = {}
+        post_synaptic_neurons = {}
+
+        for i in pre_synaptic_indicies:
+            pre_synaptic_neurons[i] = self.neuron_models[i]
+    
+        for i in post_synaptic_indicies:
+            post_synaptic_neurons[i] = self.neuron_models[i]
+
+        return [pre_synaptic_neurons, post_synaptic_neurons]
+    def setup_old_instance_from_dict(self, model_dict):
+
+        neural_params = model_dict["neurons"]
+        synapse_params = model_dict["synapses"]
+        network_params = model_dict["network"]
+
+        dt = network_params["dt"]
+        t = network_params["t"]
+
+        self.setup_sim(0, dt)
+        
+        for i in range(network_params["num_neurons"]):
+            selected_params = neural_params[i]
+
+            neuron_params = selected_params["neuron_params"]
+            gate_params = selected_params["gating_params"]
+
+            self.__setup_old_neuron_from_dict(neuron_params, gate_params, t, dt)
+            self.num_neurons+=1
+
+        for syn_ind in synapse_params:
+            current_syn = synapse_params[syn_ind]
+
+            #split syn into each part
+            syn_state = current_syn["state"]
+            syn_params = current_syn["params"]
+            syn_connections = current_syn["connections"]
+
+            #connections setup
+            pre_cons = syn_connections["pre"]
+            post_cons = syn_connections["post"]
+
+            self.create_synapse(pre_cons, post_cons, syn_params)
+
+            self.synapses[-1].set_state(syn_state)
+            
+
+            
+            
+            
+    def __str__(self):
+        sim_str = ""
+
+        for i in self.neuron_models:
+            sim_str += str(i) + "\n\n"
+        for i in self.synapses:
+            sim_str += str(i) + "\n\n"
+        
+        return sim_str
 
 
     def setup_old_instance(self, neuron_models_params:list, neuron_model_states:list, neuron_models_positions:list, input_currents:list, synapses_params, synapses_states, synapses_postions, t, dt):
         #create each neuron
+
 
         self.setup_sim(0, dt)
 

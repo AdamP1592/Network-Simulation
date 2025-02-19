@@ -1,11 +1,20 @@
 class tsodyks_markram_synapse():
 
     def __init__(self, pre_synaptic_neurons, post_synaptic_neurons, params, dt= 0.01):
+        self.x, self.y = 0, 0
         self.r, self.r_past, self.u, self.u_past, self.t = 1, 1, 0, 0, 0
-        #
+        
         self.dt = dt
-        self.pre_synaptic_neurons = pre_synaptic_neurons
-        self.post_synaptic_neurons = post_synaptic_neurons
+
+        #holders for setup
+        self.pre_indicies = []
+        self.post_indicies = []
+
+        self.pre_synaptic_neurons = []
+        self.post_synaptic_neurons = []
+
+        #setup all the connections
+        self.setup_connections(pre_synaptic_neurons, post_synaptic_neurons)
 
         self.past_spike_times = [None for i in range(len(self.pre_synaptic_neurons))]
         self.is_active = [False for i in range(len(self.pre_synaptic_neurons))]
@@ -13,6 +22,18 @@ class tsodyks_markram_synapse():
         self.setup_activation_params(params)
 
     
+    def setup_connections(self, pre_synaptic_neurons, post_synaptic_neurons):
+        for key in pre_synaptic_neurons:
+            #sets up pre_syn indicies which hold all the indexes for the connected neruons
+            #to be used on restarting a network
+            self.pre_indicies.append(key)
+            self.pre_synaptic_neurons.append(pre_synaptic_neurons[key])
+
+        for key in post_synaptic_neurons:
+            self.post_indicies.append(key)
+            self.post_synaptic_neurons.append(post_synaptic_neurons[key])
+
+
     def get_params(self):
         syn_params = {
             "state":{
@@ -29,23 +50,49 @@ class tsodyks_markram_synapse():
                 "g_max": self.g_max,
                 "u_max": self.u_max,
                 "e": self.reversal_potential,
-                 
+                "tau_recovery": self.tau_r,
+                "tau_facilitation": self.tau_f
 
+            },
+            "connections":{
+                "pre":self.pre_indicies,
+                "post":self.post_indicies
             }
 
 
         }
         return syn_params
             
+    def setup_old_activation_params(self, params):
 
+
+        self.action_potential_thresholds = []
+        for i in self.pre_synaptic_neurons:
+            self.action_potential_thresholds.append(i.action_potential_threshold)
+
+        self.tau_r = params["tau_recovery"]
+        self.tau_f = params["tau_facilitation"]
+
+        self.u_max = params["u_max"]
+        self.reversal_potential = params["e"]
+
+        self.g_max = params["g_max"]
+        self.g_syn = params["g_syn"]
+
+    #checks if each of the pre synaptic neurons is active and 
+    #updates spike times of each of the pre synaptic neurons to reflect the recent spike.
     def setup_activation_params(self, params):
-
 
         """
         params = {"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
                    "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
         """
         
+        if type(params["tau_recovery"]) != list:
+            self.setup_old_activation_params(params)
+            return
+
+
         self.action_potential_thresholds = []
         for i in self.pre_synaptic_neurons:
             self.action_potential_thresholds.append(i.action_potential_threshold)
@@ -82,6 +129,14 @@ class tsodyks_markram_synapse():
             if neuron.v >= neuron.action_potential_threshold and not self.is_active[i] == True:
                 self.is_active[i] = True
                 self.past_spike_times[i] = self.t
+
+    def set_state(self, state):
+
+        self.r = state["r"]
+        self.r_past = state["r_past"]
+        self.u = state["u"]
+        self.u_past = state["u_past"]
+        self.t = state["t"]
             
     def update(self):
         self.update_spike_times()
@@ -121,6 +176,8 @@ class tsodyks_markram_synapse():
 
 
         self.t += self.dt
+    def __str__(self):
+        return str(self.get_params())
 
 
 class synapse_hh():

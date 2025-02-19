@@ -19,19 +19,15 @@ def add_neuron(sim, params = None):
 
 if __name__ == '__main__':
     
-    dt = 0.01
+    dt = 0.001
     
-    data =    {"gk": 36.004631953926285, "gna": 119.91561331101256, "gleak": 0.2997385592373893, "ek": -82.03623253390188, "ena": 45.028284147345595, "eleak": -59.35717906013866, "c": 0.9998470285990088, "vrest": -59.35717564093531, "vthresh": 15.119047441363206}
+    data = {"gk": 36.004631953926285, "gna": 119.91561331101256, "gleak": 0.2997385592373893, "ek": -82.03623253390188, "ena": 45.028284147345595, "eleak": -59.35717906013866, "c": 0.9998470285990088, "vrest": -59.35717564093531, "vthresh": 15.119047441363206}
     num_pre_neurons = 2
     num_post_neurons = 1
 
     pre_synaptic_neurons = []
     post_synaptic_neurons = []
-    sim = simulation(num_pre_neurons + num_post_neurons, 0.001)
-
-
-    #pre_synaptic_neurons = neurons[:num_pre_neurons]
-    #post_synaptic_neurons = neurons[num_post_neurons+1:]
+    sim = simulation(num_pre_neurons + num_post_neurons, dt)
 
     for i in sim.neuron_models:
         i.set_params(data)
@@ -47,12 +43,15 @@ if __name__ == '__main__':
     for i in range(int(20/dt)):
         sim.iterate()
 
-
         t += dt
         ts.append(t)
 
-    print(sim.generate_model_dict()["neurons"][0])
+    model_dict = sim.generate_model_dict()
 
- 
+    sim1 = str(sim)
+
+    sim.setup_old_instance_from_dict(model_dict)
+
+    sim.iterate()
     #synapse_plot.plot(ts, g_syns)
 

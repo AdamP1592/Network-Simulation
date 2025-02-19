@@ -148,10 +148,23 @@ class hodgkin_huxley(neuron):
 
         self.resting_potential = params['vrest']
         self.action_potential_threshold = params['vthresh']
+
         
-        self.v = self.resting_potential
+        try:
+            self.v = params["v"]
+        except KeyError:
+            self.v = params["vrest"]
 
         self.membrane_cap = params['c']
+
+    def set_old_params(self, neuron_params:dict, gate_params:dict, dt):
+        self.set_params(neuron_params)
+
+        self.x = neuron_params["x"]
+        self.y = neuron_params["y"]
+
+        self.dt = dt
+        
     
     #create a dictionary object with all stored neural parameters so instance can be stored
     def get_params(self):
@@ -170,8 +183,14 @@ class hodgkin_huxley(neuron):
         neural_params['ena'] = self.eNa
         neural_params['eleak'] = self.eLeak
 
-        neural_params['resting_voltage'] = self.resting_potential
-        neural_params['action_potential_threshhold'] = self.action_potential_threshold
+        neural_params['vrest'] = self.resting_potential
+        neural_params['vthresh'] = self.action_potential_threshold
+
+        neural_params["v"] = self.v
+        neural_params['c'] = self.membrane_cap
+
+        neural_params["x"] = self.x
+        neural_params["y"] = self.y
         #generates a dictionary of all the gating variables(n, m, h)
         #each gating variable is a dictionary of the current state, and 
         for i in gating_variables.keys():
@@ -182,8 +201,8 @@ class hodgkin_huxley(neuron):
             gating_params[f"{i}_beta"] = current_gate.beta
 
 
-        params['neuron'] = neural_params
-        params['gating'] = gating_params
+        params['neuron_params'] = neural_params
+        params['gating_params'] = gating_params
 
         return params
     
@@ -216,7 +235,8 @@ class hodgkin_huxley(neuron):
 
         current = constant_current(input_current)
         self.input_current_func = current.get_current
-
+    def __str__(self):
+        return str(self.get_params())
     
 #each neuron will be 3 vectors, 1 point, and internal dynamics
 #the point is the cell  body, the vectors are
