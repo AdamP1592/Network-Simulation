@@ -9,6 +9,8 @@ class simulation():
     
     def __init__(self, num_neurons:int, dt:float):
         self.setup_sim(num_neurons, dt)
+
+        
     def setup_sim(self, num_neurons, dt):
         self.num_neurons = num_neurons
 
@@ -179,6 +181,7 @@ class simulation():
     def __setup_old_neuron_from_dict(self, neuron_params, neuron_gate_params, t, dt):
         from neuron_models.neuron_models import hodgkin_huxley
         #standard setup
+
             
         neuron = hodgkin_huxley(neuron_params, dt)
 
@@ -226,6 +229,9 @@ class simulation():
 
         dt = network_params["dt"]
         t = network_params["t"]
+
+        self.t = t
+        self.dt = dt
 
         self.setup_sim(0, dt)
         

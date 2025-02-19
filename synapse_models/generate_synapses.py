@@ -8,6 +8,9 @@ class connection():
     def __init__(self):
         self.hosts, self.connections, self.connection_poly = [], [], None
 
+    def get_center(self):
+        center_point = self.connection_poly.centroid
+        return [center_point.x, center_point.y]
     def get_area(self):
         return area(self.connection_poly)
     def add_host(self, host):
@@ -53,7 +56,6 @@ def generate_neuron_polys(soma_points, r_dendrite, r_axon, dendrite_thetas, axon
         
         color_index = i % len(colors)
         center = soma_points[i]
-        plot_point(Point(center[0],center[1]), color=colors[color_index], alpha = 0.7, annotation=str(i))
 
         theta1_dendrite, theta2_dendrite = dendrite_thetas[i]
         theta1_axon, theta2_axon = axon_thetas[i]
@@ -239,9 +241,12 @@ if __name__ == '__main__':
 
 
     soma_points =  [(soma_x[i], soma_y[i]) for i in range(num_neurons)]
-    synapses = create_synapses(ax, soma_points)
+    synapses = create_synapses(soma_points)
 
-    #print(synapses)
+    
+    for syn in synapses:
+        print(syn.connection_poly.centroid.x)
+
     """for key in synapses.keys():
         connections = synapses[key]
 

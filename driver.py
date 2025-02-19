@@ -17,6 +17,25 @@ def add_neuron(sim, params = None):
 
     sim.create_neuron()
 
+
+def create_sim(num_neurons):
+    sim = simulation(num_neurons, 0.001)
+
+
+def iterate_sim(sim_dict, duration):
+    network_dict = sim_dict["network"]
+    
+    dt = network_dict["dt"]
+
+    sim = simulation(0, 0)
+    sim.setup_old_instance_from_dict(sim_dict)
+
+    num_steps = int(duration/dt)
+
+    sim.iterate(num_steps)
+
+    
+
 if __name__ == '__main__':
     
     dt = 0.001
@@ -49,9 +68,9 @@ if __name__ == '__main__':
     model_dict = sim.generate_model_dict()
 
     sim1 = str(sim)
+    sim = simulation(0, dt)
 
     sim.setup_old_instance_from_dict(model_dict)
 
     sim.iterate()
-    #synapse_plot.plot(ts, g_syns)
 
