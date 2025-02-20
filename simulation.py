@@ -224,6 +224,7 @@ class simulation():
     def setup_old_instance_from_dict(self, model_dict):
 
         neural_params = model_dict["neurons"]
+        print(neural_params)
         synapse_params = model_dict["synapses"]
         network_params = model_dict["network"]
 
@@ -235,7 +236,18 @@ class simulation():
 
         self.setup_sim(0, dt)
         
+        is_json = False
         for i in range(network_params["num_neurons"]):
+            #catch potential json where all keys are strings
+            selected_params = {}
+            try:
+                selected_params = neural_params[i]
+            except:
+                is_json = True
+
+            if(is_json):
+                i = str(i)
+
             selected_params = neural_params[i]
 
             neuron_params = selected_params["neuron_params"]

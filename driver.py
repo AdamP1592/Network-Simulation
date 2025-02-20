@@ -42,15 +42,29 @@ def create_sim(num_neurons, x_max, y_max):
         synapse_position = con.get_center()
 
         #use for probability of connection
-        x, y = con.get_area()
+        x, y = con.get_center()
 
         sim.create_synapse(pre_syn_neurons, post_syn_neurons)
         #set position of last created neuron
         sim.synapses[-1].x = x
         sim.synapses[-1].y = y
 
+    return sim
+def get_sim_dict():
+    import json
+    data = {}
+    with open("./data/sim.json", "r") as f:
+        data = json.load(f)
 
-    
+    return data
+
+def store_sim(sim):
+    import json
+    sim_dict = sim.generate_model_dict()
+
+    with open('./data/sim.json', 'w') as f:
+
+        f.write(json.dumps(sim_dict))
 
 
 def iterate_sim(sim_dict, duration):
@@ -67,8 +81,11 @@ def iterate_sim(sim_dict, duration):
 
 
 if __name__ == '__main__':
-    create_sim(5, 5, 5)
+    #neuron_sim = create_sim(5, 5, 5)
+    sim_dcit = get_sim_dict()
 
+    sim = simulation(0, 0)
+    sim.setup_old_instance_from_dict(sim_dcit)
     """
     dt = 0.001
     
