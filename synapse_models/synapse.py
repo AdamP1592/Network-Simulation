@@ -51,7 +51,9 @@ class tsodyks_markram_synapse():
                 "u_max": self.u_max,
                 "e": self.reversal_potential,
                 "tau_recovery": self.tau_r,
-                "tau_facilitation": self.tau_f
+                "tau_facilitation": self.tau_f,
+                "x": self.x,
+                "y": self.y
 
             },
             "connections":{
@@ -102,7 +104,7 @@ class tsodyks_markram_synapse():
 
         self.tau_r = params["tau_recovery"][0]
         self.tau_f = params["tau_facilitation"][1]
-        self.u_max = params["u_max"][1]
+        self.u_max = params["u_max"][0]
         self.u = params["u"][0]
         self.reversal_potential = params["e"][1]
         self.g_max = params["g_max"][1]

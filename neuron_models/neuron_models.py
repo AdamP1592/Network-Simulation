@@ -42,6 +42,10 @@ class hodgkin_huxley(neuron):
         self.n_gate, self.m_gate, self.h_gate = gate(), gate(), gate()
         
         self.dt = dt
+        
+        self.i_k = 0
+        self.i_na = 0
+        self.i_leak = 0
         self.i_syn = 0
 
         #current params stup
@@ -191,6 +195,12 @@ class hodgkin_huxley(neuron):
 
         neural_params["x"] = self.x
         neural_params["y"] = self.y
+
+        neural_params['ik'] = self.i_k
+        neural_params['ina'] = self.i_na
+        neural_params['ileak'] = self.i_leak
+        neural_params['isyn'] = self.i_syn
+
         #generates a dictionary of all the gating variables(n, m, h)
         #each gating variable is a dictionary of the current state, and 
         for i in gating_variables.keys():

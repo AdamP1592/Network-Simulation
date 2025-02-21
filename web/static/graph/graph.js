@@ -10,7 +10,111 @@ const synapses = {s0:[8, 15], s1:[25, 35]}
 
 const positions = {...neurons, ...synapses}
 
+document.addEventListener("DOMContentLoaded",setUpNetwork);
 
+function clean_data(neurons, synapses){
+
+    let nodes = {}
+    for (let neuron_ind in neurons){
+        let neuron_name = "n" + String(neuron_ind)
+
+        let neuron = neurons[neuron_ind]
+        let neuron_params = neuron["neuron_params"]
+
+        let color = hsbColorRangeFinder(0, 70, neuron_params["vrest"] , neuron_params["vthresh"], neuron_params["v"])
+        
+        let x = neuron_params["x"]
+        let y = neuron_params["y"]
+
+        nodes[neuron_name] = {position:[x, y], color:color }
+    }
+    for (let syn_ind in synapses){
+        let synapse_name = "s" + String(syn_ind)
+
+        let synapse = synapses[syn_ind]
+        console.log(synapse)
+        let synapse_params = synapse["params"]
+
+        let color = "#61a0a8"
+        
+        let x = synapse_params["x"]
+        let y = synapse_params["y"]
+
+        nodes[synapse_name] = {position:[x, y], color:color }
+    }
+    return nodes
+}   
+
+function get_connections(synapses){
+    let connection_dict = {}
+    for (let syn_key in synapses){
+
+        let syn = synapses[syn_key]
+        
+        let synapse_name = "s" + syn_key;
+
+        let con = syn["connections"]
+
+        let pre_syn = con["pre"]
+        let post_syn = con["post"]
+        
+        //iterate through all pre_syn neurons.
+        //Create connections for each neuron that points to this synapse
+        for (let neuron_ind in pre_syn){
+            let neuron_name = "n" + neuron_ind
+            if(connection_dict[neuron_name] === undefined){
+                connection_dict[neuron_name] = []
+            }
+            connection_dict[neuron_name].push(synapse_name)
+        }
+        //create connection for all the neurons this synapse points to
+
+        let post_syn_names = post_syn.map(element => "n" + element)
+        connection_dict[synapse_name] = post_syn_names
+
+    }
+    return connection_dict;
+}
+function setUpNetwork(){
+    let numNeuronsStr = prompt("Please enter number of neurons:", "0");
+
+    let numNeurons = parseInt(numNeuronsStr);
+    let networkParams = {"numNeurons": numNeurons, dimensions:{x:"5", y:"5"}};
+    fetch('/simulation/startSim',{
+        method:'POST',
+        headers: {
+            "Content-Type" : 'application/json'
+
+        },
+        body: JSON.stringify(networkParams)
+    }).then( response => {
+        if(!response.ok){
+            throw new Error("Response was not ok");
+        }
+        return response.json();
+
+
+    }).then(data => {
+
+        console.log(data)
+
+        let neurons = data["neurons"]
+        let synapses = data["synapses"]
+
+        let pos_dict = clean_data(neurons, synapses);
+        let con_dict = get_connections(synapses)
+
+        buildGraphs(con_dict, pos_dict)
+        
+
+        console.log("Success", data);
+    }).catch((error)=>{
+        console.error("Error:", error);
+    });
+
+
+
+}
 function get_data(){
     return false;
 }
@@ -19,10 +123,15 @@ function position_to_data_arr(positions){
     let position_ls = [];
     let symbols = {n:"circle", s:"rect"}
     for (let name in positions){
+        
+        let pos_container = positions[name]
+
+        console.log(pos_container)
+
         let position_obj = 
         {
             name:name.toString(),
-            value:[positions[name][0], positions[name][1]],
+            value:[positions[name]["position"][0], positions[name]["position"][1]],
             label: name.toString(),
             symbol: symbols[name[0]]
 
@@ -42,16 +151,8 @@ function get_connection_list(connections){
     return connection_list
 }
 
-function setUpNetwork(){
-    let numNeuronsStr = prompt("Please enter number of neurons:", "0");
 
-    let numNeurons = parseInt(numNeuronsStr);
-
-}
-
-
- function buildGraphs() {
-    setUpNetwork()
+ function buildGraphs(connections, positions) {
 
     let chart_container = document.getElementById('chart_container')
 
@@ -96,7 +197,6 @@ function setUpNetwork(){
         tooltip:{ 
             trigger:"item",
             formatter: function (params) {
-                console.log(params)
                 if (params.dataType === "node") {
                     if(params.name.includes("n")){
                         return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
@@ -159,4 +259,3 @@ function setUpNetwork(){
     }
 }
 
-document.addEventListener("DOMContentLoaded",buildGraphs);

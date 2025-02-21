@@ -39,8 +39,6 @@ def create_sim(num_neurons, x_max, y_max):
         pre_syn_neurons = con.hosts
         post_syn_neurons = con.connections
 
-        synapse_position = con.get_center()
-
         #use for probability of connection
         x, y = con.get_center()
 
@@ -79,13 +77,12 @@ def iterate_sim(sim_dict, duration):
 
     sim.iterate(num_steps)
 
-
 if __name__ == '__main__':
     #neuron_sim = create_sim(5, 5, 5)
-    sim_dcit = get_sim_dict()
+    sim_dict = get_sim_dict()
 
     sim = simulation(0, 0)
-    sim.setup_old_instance_from_dict(sim_dcit)
+    sim.setup_old_instance_from_dict(sim_dict)
     """
     dt = 0.001
     

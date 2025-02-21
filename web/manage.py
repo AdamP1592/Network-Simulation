@@ -1,12 +1,22 @@
 from flask import Flask, request, render_template, redirect, jsonify
+
 import sys, os
 from cachetools import TTLCache
+
+#for importing driver
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+sys.path.append(parent)
+
+import driver
 
 max_users = 1
 sim_timeout = 120 #120 seconds
 
 #times out instances after some time
 sims_cache = TTLCache(max_users, sim_timeout) 
+
+sim = None
 
 #Overflow could be initialized on request
 #for now limited usercount
@@ -51,14 +61,19 @@ def get_graph_template():
 
 
 @app.route("/simulation/startSim", methods=['POST'])
-def setupSim():
+def setup_sim():
+    global sim
     data = request.get_json()
 
     if not data:
-        app.logger.warning("Error recieving sim setup data")
+        app.logger.warning("Error recieving sim setup data")\
+    
+    num_neurons = int(data["numNeurons"])
+    culture_dimensions = data["dimensions"]
 
-    numNeurons = data["numNeurons"]
-    return render_template("background.html", page_name=f"simulation.html")
+    sim = driver.create_sim(num_neurons, float(culture_dimensions["x"]), float(culture_dimensions["y"]))
+
+    return jsonify(sim.generate_model_dict())
 
 @app.route("/home")
 def home():

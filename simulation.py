@@ -272,10 +272,6 @@ class simulation():
 
             self.synapses[-1].set_state(syn_state)
             
-
-            
-            
-            
     def __str__(self):
         sim_str = ""
 
@@ -285,16 +281,3 @@ class simulation():
             sim_str += str(i) + "\n\n"
         
         return sim_str
-
-
-    def setup_old_instance(self, neuron_models_params:list, neuron_model_states:list, neuron_models_positions:list, input_currents:list, synapses_params, synapses_states, synapses_postions, t, dt):
-        #create each neuron
-
-
-        self.setup_sim(0, dt)
-
-        for i in range(len(neuron_models_params)):
-           
-            self.__setup_old_neuron(neuron_model_states[i], neuron_models_params[i], neuron_models_positions[i], t, dt)
-        
-
