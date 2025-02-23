@@ -4,6 +4,10 @@ from matplotlib.patches import Polygon as MplPolygon
 from shapely.geometry import Point
 from shapely import centroid, area
 ax = []
+
+axon_polys = []
+
+dendrite_polys = []
 class connection():
     def __init__(self):
         self.hosts, self.connections, self.connection_poly = [], [], None
@@ -31,7 +35,7 @@ class connection():
 def generate_semicircle_polygon(center, radius, theta1, theta2, num_points=100):
     from shapely.geometry import Polygon
     angles = np.linspace(theta1, theta2, num_points)
-    points = [(center[0] + radius * np.cos(angle), center[1] + radius * np.sin(angle)) for angle in angles]
+    points = [(center.x + radius * np.cos(angle), center.y + radius * np.sin(angle)) for angle in angles]
     points.append(center)  # Close the polygon
 
     return Polygon(points)
@@ -201,6 +205,11 @@ def get_axon_overlap(synapses, axon_polys):
     return remove_duplicate_intersections(new_synapses)
 
 def create_synapses(soma_points):
+    global axon_polys
+    global dendrite_polys
+
+    if type(soma_points[0]) == tuple:
+        soma_points = list(map(Point, soma_points))
     
     r_dendrite, r_axon, dendrite_thetas, axon_thetas = create_poly_params(soma_points)
     print("Creating polygons")
@@ -208,14 +217,17 @@ def create_synapses(soma_points):
     print("Generating synapses")
     no_overlap_synapses = generate_synapses(axon_polys, dendrite_polys)
 
-
     print("Removing any duplicate synapses")
     no_overlap_synapses = remove_duplicate_intersections(no_overlap_synapses)
     print("Removed")
     print("Getting axons that overlap existing synapses")
     synapses = get_axon_overlap(no_overlap_synapses, axon_polys)
+
     print("Found")
+
     synapses += no_overlap_synapses
+
+    print(len(synapses))
     #check if any synapse overlaps with an axon.
     #if it does add that axon to the pre synaptic axons
     return synapses
@@ -232,7 +244,7 @@ def remove_duplicate_intersections(connections):
 if __name__ == '__main__':
     fig, ax = plt.subplots()
     max_size = 3
-    num_neurons = 12
+    num_neurons = 5
     soma_points = []
 
     #modify this to be setting neuron_x, neuron_y values
@@ -240,12 +252,23 @@ if __name__ == '__main__':
     soma_y = np.random.rand(num_neurons) * max_size
 
 
-    soma_points =  [(soma_x[i], soma_y[i]) for i in range(num_neurons)]
+    soma_points =  [Point(soma_x[i], soma_y[i]) for i in range(num_neurons)]
+    
     synapses = create_synapses(soma_points)
 
+    for point_ind in range(len(soma_points)):
+        point = soma_points[point_ind]
+        plot_point(ax, point, "#fc2803",annotation=str(point_ind))
+
+    for ax_poly in axon_polys:
+        plot_filled_polygon(ax, ax_poly, "#03fc6f")
+
+    for den_poly in dendrite_polys:
+        plot_filled_polygon(ax, den_poly, "#f003fc")
     
     for syn in synapses:
-        print(syn.connection_poly.centroid.x)
+        print(syn)
+        plot_filled_polygon(ax, syn.connection_poly, "#1c1c1c")
 
     """for key in synapses.keys():
         connections = synapses[key]

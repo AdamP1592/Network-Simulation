@@ -182,7 +182,6 @@ class simulation():
         from neuron_models.neuron_models import hodgkin_huxley
         #standard setup
 
-            
         neuron = hodgkin_huxley(neuron_params, dt)
 
         #load existing states
@@ -224,7 +223,6 @@ class simulation():
     def setup_old_instance_from_dict(self, model_dict):
 
         neural_params = model_dict["neurons"]
-        print(neural_params)
         synapse_params = model_dict["synapses"]
         network_params = model_dict["network"]
 

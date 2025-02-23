@@ -26,6 +26,7 @@ def create_sim(num_neurons, x_max, y_max):
     soma_ys = random.rand(num_neurons) * y_max
 
     soma_points = []
+
     for i in range(num_neurons):
 
         sim.neuron_models[i].x = soma_xs[i]
@@ -34,6 +35,8 @@ def create_sim(num_neurons, x_max, y_max):
         soma_points.append((soma_xs[i], soma_ys[i]))
 
     connections = synapse_generator.create_synapses(soma_points)
+
+    #[print("connections\n\n", con) for con in connections]
 
     for con in connections:
         pre_syn_neurons = con.hosts
@@ -46,6 +49,7 @@ def create_sim(num_neurons, x_max, y_max):
         #set position of last created neuron
         sim.synapses[-1].x = x
         sim.synapses[-1].y = y
+
 
     return sim
 def get_sim_dict():
@@ -79,10 +83,10 @@ def iterate_sim(sim_dict, duration):
 
 if __name__ == '__main__':
     #neuron_sim = create_sim(5, 5, 5)
-    sim_dict = get_sim_dict()
 
-    sim = simulation(0, 0)
-    sim.setup_old_instance_from_dict(sim_dict)
+
+    sim = create_sim(5, 5, 5)
+    #sim.setup_old_instance_from_dict(sim_dict)
     """
     dt = 0.001
     

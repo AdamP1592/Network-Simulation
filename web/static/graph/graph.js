@@ -1,6 +1,7 @@
+
 import {hsbColorRangeFinder} from './color_functions.js'
 
-
+var chart;
 //setup for 0: [1, 4, 5], 1: [5, 2], 2:[ 3, 5], 3: [4, 5]
 const connections = {n0:["s0"], n2:["s1"], s0:["n2", "n1"],  s1:["n4", "n3", "n5"]}
 
@@ -10,10 +11,19 @@ const synapses = {s0:[8, 15], s1:[25, 35]}
 
 const positions = {...neurons, ...synapses}
 
+var electrodes = []
+
+var addedElectrodes = 0
+
+var isDragging = false
 document.addEventListener("DOMContentLoaded",setUpNetwork);
+function rgbToCss(rgbArray) {
+    return `rgb(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]})`;
+}
 
 function clean_data(neurons, synapses){
-
+    //combines all the neurons and synapses into one dictionary to used for storing positions
+    //and style for the display
     let nodes = {}
     for (let neuron_ind in neurons){
         let neuron_name = "n" + String(neuron_ind)
@@ -21,7 +31,7 @@ function clean_data(neurons, synapses){
         let neuron = neurons[neuron_ind]
         let neuron_params = neuron["neuron_params"]
 
-        let color = hsbColorRangeFinder(0, 70, neuron_params["vrest"] , neuron_params["vthresh"], neuron_params["v"])
+        let color = hsbColorRangeFinder(0, 70, neuron_params["vrest"], neuron_params["vthresh"], neuron_params["v"])
         
         let x = neuron_params["x"]
         let y = neuron_params["y"]
@@ -32,7 +42,6 @@ function clean_data(neurons, synapses){
         let synapse_name = "s" + String(syn_ind)
 
         let synapse = synapses[syn_ind]
-        console.log(synapse)
         let synapse_params = synapse["params"]
 
         let color = "#61a0a8"
@@ -42,11 +51,15 @@ function clean_data(neurons, synapses){
 
         nodes[synapse_name] = {position:[x, y], color:color }
     }
+    console.log("nodes:", nodes)
     return nodes
 }   
 
 function get_connections(synapses){
+
+    //generates a dict of connections, splitting out synapses as independent nodes
     let connection_dict = {}
+    console.log("Pulling Connections...")
     for (let syn_key in synapses){
 
         let syn = synapses[syn_key]
@@ -57,13 +70,15 @@ function get_connections(synapses){
 
         let pre_syn = con["pre"]
         let post_syn = con["post"]
+
         
         //iterate through all pre_syn neurons.
         //Create connections for each neuron that points to this synapse
         for (let neuron_ind in pre_syn){
-            let neuron_name = "n" + neuron_ind
+
+            let neuron_name = "n" + pre_syn[neuron_ind];
             if(connection_dict[neuron_name] === undefined){
-                connection_dict[neuron_name] = []
+                connection_dict[neuron_name] = [];
             }
             connection_dict[neuron_name].push(synapse_name)
         }
@@ -74,6 +89,25 @@ function get_connections(synapses){
 
     }
     return connection_dict;
+}
+
+function iterateSim(){
+    fetch('/simulation/iterateSim',{
+        method:'POST',
+
+    }).then( response => {
+        if(!response.ok){
+            throw new Error("Response was not ok");
+        }
+        return response.json();
+
+
+    }).then(data => {
+
+        console.log("Success", data);
+    }).catch((error)=>{
+        console.error("Error:", error);
+    });
 }
 function setUpNetwork(){
     let numNeuronsStr = prompt("Please enter number of neurons:", "0");
@@ -96,7 +130,7 @@ function setUpNetwork(){
 
     }).then(data => {
 
-        console.log(data)
+        console.log("Recieved data:",  data)
 
         let neurons = data["neurons"]
         let synapses = data["synapses"]
@@ -106,39 +140,109 @@ function setUpNetwork(){
 
         buildGraphs(con_dict, pos_dict)
         
-
         console.log("Success", data);
     }).catch((error)=>{
         console.error("Error:", error);
     });
 
-
-
-}
-function get_data(){
-    return false;
 }
 //data processing
 function position_to_data_arr(positions){
     let position_ls = [];
-    let symbols = {n:"circle", s:"rect"}
+    let symbols = {n:"circle", s:"rect"};
+    let symbolSizes = {n:25, s:20};
     for (let name in positions){
         
-        let pos_container = positions[name]
+        let pos_container = positions[name];
+        console.log(name[0] == 's');
+        let color = "#4287f5";
 
-        console.log(pos_container)
+        if(name[0] == 'n'){
+            console.log("Changing color")
+            color = rgbToCss(positions[name]["color"]);
+        }
 
         let position_obj = 
         {
             name:name.toString(),
             value:[positions[name]["position"][0], positions[name]["position"][1]],
-            label: name.toString(),
-            symbol: symbols[name[0]]
+            
+            //text
+            label: {formatter:name.toString(), color:"#000000"},
+
+            //symbol style
+            symbol: symbols[name[0]],
+            symbolSize:symbolSizes[name[0]],
+
+            itemStyle:{color: color}
 
         }
         position_ls.push(position_obj)
     };
     return position_ls
+}
+
+function dragEvent(event){
+    console.log(event)
+}
+function chartClicked(event){
+    // Convert click position to chart coordinates
+
+    let tempElectrodes = electrodes
+
+    let width = 55;
+    let height = 55;
+
+
+    let pointInPixel = [event.offsetX, event.offsetY];
+    let pointInGrid = chart.containPixel({ seriesIndex: 0}, pointInPixel)
+
+    
+    if (event["target"]){
+        let targetId = event["target"]["id"];
+        console.log(targetId)
+        
+        for(let graphicIndex in electrodes){
+            console.log(targetId)
+            //index through electrodes to remove input pad
+            if( electrodes[graphicIndex]["id"] == targetId){
+                electrodes.splice(graphicIndex, 1);
+                chart.setOption({
+                    graphic:{
+                        id: targetId,
+                        $action: "remove"
+                    }
+                });
+            }
+                
+        }
+    
+    }
+    else if (pointInGrid) {
+        console.log("Adding");
+        let pixelPoint = chart.convertToPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [event.offsetX, event.offsetY]);
+        electrodes.push({
+            id: `e ${ addedElectrodes}`,
+            type: "rect",
+            draggable:true,
+            shape: {
+                x: event.offsetX - width/2,
+                y: event.offsetY - height/2, 
+                width: width, 
+                height: height,
+            }, // Radius
+            style: { fill: "rgb(112, 112, 112)" }, // Semi-transparent green
+            z: -1 // Ensure it's behind the neurons
+        })
+        addedElectrodes += 1
+        // Add a shape at the clicked position
+        
+    }
+    if (tempElectrodes === electrodes){
+        chart.setOption({
+            graphic: electrodes
+        });
+    }
 }
 function get_connection_list(connections){
 
@@ -151,19 +255,23 @@ function get_connection_list(connections){
     return connection_list
 }
 
-
  function buildGraphs(connections, positions) {
 
     let chart_container = document.getElementById('chart_container')
+    chart = echarts.init(chart_container);
+    
+    chart.getZr().on('click',chartClicked)
 
+
+    console.log("Connections: ", connections)
     let cons = get_connection_list(connections);
     let pos_ls = position_to_data_arr(positions);
 
-    console.log(cons)
-    console.log(pos_ls)
+    console.log("Connection List: ", cons)
+    console.log("Positions: ", pos_ls)
     
 
-    var chart = echarts.init(chart_container);
+
 
     var option = {
         title: [
@@ -192,6 +300,13 @@ function get_connection_list(connections){
             { type: "value", gridIndex: 1}, // Right top chart
             { type: "value", gridIndex: 2}  // Right bottom chart
         ],
+        dataZoom: [
+
+        //zoom and scroll functions
+        { type: 'inside', xAxisIndex: [0]},{ type: 'inside', yAxisIndex: [0]},
+
+    ],
+
 
         // Define Series (Assigning Data to Different Grids)
         tooltip:{ 
@@ -201,18 +316,20 @@ function get_connection_list(connections){
                     if(params.name.includes("n")){
                         return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
                     } else{
+                        console.log(params)
                         return `Synapse: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
-
                     }
-
                 
                 } else if (params.dataType === "edge") {
+                    
                     return `Synapse: <b>${params.data.source} → ${params.data.target}</b>`;
                 }
             }
         },
         series: [
-            { 
+            {   
+
+                roam: "disabled", 
                 //meta
                 name: "Neuron Activity", 
                 type: "graph", 
@@ -222,7 +339,7 @@ function get_connection_list(connections){
                 yAxisIndex: 0,
 
                 //charting settings
-                layout: "none",
+                layout: "force",
                 coordinateSystem: 'cartesian2d',
 
                 //symbol style
@@ -250,12 +367,12 @@ function get_connection_list(connections){
             { name: "Synapse Dynamics", type: "bar", data: [5, 2, 6], xAxisIndex: 2, yAxisIndex: 2 }  // Right bottom chart
         ]
     };
-    console.log(option)
     // Apply options
     if (chart){
         chart.setOption(option);
     }else{
         console.error("Echart instance failed to init")
     }
+    iterateSim()
 }
 

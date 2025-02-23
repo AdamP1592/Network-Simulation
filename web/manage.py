@@ -59,6 +59,24 @@ def get_nav_template():
 def get_graph_template():
     return render_template("background.html", page_name=f"simulation.html")
 
+@app.route("/simulation/iterateSim", methods=['POST'])
+def iterate_sim():
+    global sim
+
+    ## 10 seconds
+    num_steps = int(1/sim.dt)
+
+    sim.iterate(num_steps)
+
+    vs = sim.vs
+
+    sim_dict = sim.generate_model_dict()
+
+    sim_dict["vs"] = vs
+    print(len(vs))
+    [print(v, file=sys.stderr) for v in vs]
+
+    return jsonify(sim_dict)
 
 @app.route("/simulation/startSim", methods=['POST'])
 def setup_sim():

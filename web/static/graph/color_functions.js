@@ -1,4 +1,8 @@
 function hsbToRGB(h, s, b){
+
+    s /= 100
+    b /= 100
+
     const i = Math.floor(h * 6); //for rgb calc
     const f = h * 6 - i;
     const p = b * (1 - s);
@@ -32,13 +36,17 @@ function hueInterpolator(minH, maxH, minValue, maxValue, value){
 //
 export function hsbColorRangeFinder(minH, maxH, minVal, maxVal, val){
     //edge cases
+
+    
     if (val < minVal){ val = minVal}
     if (val > maxVal){ val = maxVal}
-    
+
     let h = hueInterpolator(minH, maxH, minVal, maxVal, val);
     let s = 100;
     let b = 100;
 
-    return hsbToRGB(h, s, b);
+    let rgb = hsbToRGB(h, s, b);
+
+    return rgb
 }
 
