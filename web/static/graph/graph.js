@@ -66,7 +66,6 @@ function clean_data(neurons, synapses){
 
         nodes[synapse_name] = {position:[x, y], color:color }
     }
-    console.log("nodes:", nodes)
     return nodes
 }   
 
@@ -226,6 +225,9 @@ function nodeClicked(params){
         }
     }
 }
+function nodeRightClick(event){
+    console.log("RightClick: ", event)
+}
 function chartClicked(event){
     // Convert click position to chart coordinates
     let width = 50;
@@ -269,8 +271,9 @@ function buildGraphs(positions, connections) {
     let chart_container = document.getElementById('chart_container')
     chart = echarts.init(chart_container);
     
-    chart.getZr().on('click',chartClicked)
-    chart.on('click', nodeClicked)
+    chart.getZr().on('click',chartClicked);
+    chart.on('click', nodeClicked);
+    chart.on('contextmenu', nodeRightClick);
     var option = {
         title: [
             { text: "Neuron Activity", left: "10%", top: "5%" }, // Left chart title
@@ -298,7 +301,9 @@ function buildGraphs(positions, connections) {
             { type: "value", gridIndex: 1}, // Right top chart
             { type: "value", gridIndex: 2}  // Right bottom chart
         ],
-        //dataZoom: [{ type: 'inside', xAxisIndex: [0]},{ type: 'inside', yAxisIndex: [0]}],
+        dataZoom: [
+            { type: 'inside', xAxisIndex: [0]},{ type: 'inside', yAxisIndex: [0]}
+        ],
 
 
         // Define Series (Assigning Data to Different Grids)
@@ -309,7 +314,6 @@ function buildGraphs(positions, connections) {
                     if(params.name.includes("n")){
                         return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
                     } else{
-                        console.log(params)
                         return `Synapse: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
                     }
                 
@@ -347,7 +351,7 @@ function buildSeries(positions, connections){
     let series= [
         {   
 
-            roam: "disabled", 
+            roam: "enabled", 
             //meta
             name: "Neuron Activity", 
             type: "graph", 
