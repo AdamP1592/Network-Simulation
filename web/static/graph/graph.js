@@ -9,12 +9,27 @@ const neurons = {n0:[5, 10], n1:[30, 10], n2:[10, 30], n3:[40, 20], n4: [30, 45]
 
 const synapses = {s0:[8, 15], s1:[25, 35]}
 
+
 const positions = {...neurons, ...synapses}
+
+var paused = false;
 
 var electrodes = []
 
 var addedElectrodes = 0
 
+let updateTimeout;
+
+function pauseRender(){
+    let switchClass = {pause:"play", play:"pause"}
+    let switchPause = {pause:false, play:true}
+    let btn = document.getElementById("pause_button");
+    
+    paused = switchPause[btn.className];
+
+    btn.className = switchClass[btn.className]
+    
+}
 var isDragging = false
 document.addEventListener("DOMContentLoaded",setUpNetwork);
 function rgbToCss(rgbArray) {
@@ -92,27 +107,42 @@ function get_connections(synapses){
 }
 
 function iterateSim(){
-    fetch('/simulation/iterateSim',{
-        method:'POST',
+    if (!paused){
+        
+        fetch('/simulation/iterateSim', {
+            method:'POST',
 
-    }).then( response => {
-        if(!response.ok){
-            throw new Error("Response was not ok");
-        }
-        return response.json();
+        }).then( response => {
+            if(!response.ok){
+                throw new Error("Response was not ok");
+            }
+            return response.json();
 
 
-    }).then(data => {
+        }).then(data => {
+            console.log("Recieved data:",  data)
 
-        console.log("Success", data);
-    }).catch((error)=>{
-        console.error("Error:", error);
-    });
+            let neurons = data["neurons"]
+            let synapses = data["synapses"]
+            
+            console.log(synapses)
+            let pos_dict = clean_data(neurons, synapses);
+            let con_dict = get_connections(synapses)
+            
+            updateGraph(pos_dict, con_dict)
+        }).catch((error)=>{
+            console.error("Error:", error);
+        });
+    }else{
+        setTimeout(iterateSim, 1000)
+    }
 }
 function setUpNetwork(){
-    let numNeuronsStr = prompt("Please enter number of neurons:", "0");
+    let btn = document.getElementById("pause_button");
+    btn.addEventListener('click',pauseRender)
 
-    let numNeurons = parseInt(numNeuronsStr);
+    let numNeurons = prompt("Please enter number of neurons:", "0");
+
     let networkParams = {"numNeurons": numNeurons, dimensions:{x:"5", y:"5"}};
     fetch('/simulation/startSim',{
         method:'POST',
@@ -138,14 +168,15 @@ function setUpNetwork(){
         let pos_dict = clean_data(neurons, synapses);
         let con_dict = get_connections(synapses)
 
-        buildGraphs(con_dict, pos_dict)
+        buildGraphs(pos_dict, con_dict)
         
         console.log("Success", data);
     }).catch((error)=>{
         console.error("Error:", error);
     });
-
 }
+
+
 //data processing
 function position_to_data_arr(positions){
     let position_ls = [];
@@ -154,11 +185,9 @@ function position_to_data_arr(positions){
     for (let name in positions){
         
         let pos_container = positions[name];
-        console.log(name[0] == 's');
         let color = "#4287f5";
 
         if(name[0] == 'n'){
-            console.log("Changing color")
             color = rgbToCss(positions[name]["color"]);
         }
 
@@ -185,52 +214,37 @@ function position_to_data_arr(positions){
 function dragEvent(event){
     console.log(event)
 }
+function nodeClicked(params){
+    console.log("Node Clicked: ", params)
+
+    let nodeName = params["data"]["name"]
+    if(params["componentIndex"] == 0 && nodeName[0] == "e"){//if main graph and node is electrode
+        for(let electrodeIndex in electrodes){
+            if(electrodes[electrodeIndex]["name"] == nodeName){
+                electrodes.splice(electrodeIndex, 1);
+            }
+        }
+    }
+}
 function chartClicked(event){
     // Convert click position to chart coordinates
-
-    let tempElectrodes = electrodes
-
-    let width = 55;
-    let height = 55;
-
+    let width = 50;
+    let height = 50;
 
     let pointInPixel = [event.offsetX, event.offsetY];
-    let pointInGrid = chart.containPixel({ seriesIndex: 0}, pointInPixel)
+    let pointIsInGrid = chart.containPixel({ seriesIndex: 0}, pointInPixel)
+    let pixelToGrid = chart.convertFromPixel({seriesIndex: 0}, pointInPixel);
 
     
-    if (event["target"]){
-        let targetId = event["target"]["id"];
-        console.log(targetId)
-        
-        for(let graphicIndex in electrodes){
-            console.log(targetId)
-            //index through electrodes to remove input pad
-            if( electrodes[graphicIndex]["id"] == targetId){
-                electrodes.splice(graphicIndex, 1);
-                chart.setOption({
-                    graphic:{
-                        id: targetId,
-                        $action: "remove"
-                    }
-                });
-            }
-                
-        }
-    
-    }
-    else if (pointInGrid) {
+    if (!event["target"] && pointIsInGrid) {
         console.log("Adding");
-        let pixelPoint = chart.convertToPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [event.offsetX, event.offsetY]);
+        
         electrodes.push({
-            id: `e ${ addedElectrodes}`,
-            type: "rect",
-            draggable:true,
-            shape: {
-                x: event.offsetX - width/2,
-                y: event.offsetY - height/2, 
-                width: width, 
-                height: height,
-            }, // Radius
+            name: `e${addedElectrodes}`,
+            symbol: "rect",
+            value:[pixelToGrid[0], pixelToGrid[1]],
+
+            symbolSize:[width, height],
             style: { fill: "rgb(112, 112, 112)" }, // Semi-transparent green
             z: -1 // Ensure it's behind the neurons
         })
@@ -238,14 +252,9 @@ function chartClicked(event){
         // Add a shape at the clicked position
         
     }
-    if (tempElectrodes === electrodes){
-        chart.setOption({
-            graphic: electrodes
-        });
-    }
 }
 function get_connection_list(connections){
-
+    
     let connection_list = [];
     for (let key in connections){
         connections[key].forEach(output => {
@@ -255,24 +264,13 @@ function get_connection_list(connections){
     return connection_list
 }
 
- function buildGraphs(connections, positions) {
+function buildGraphs(positions, connections) {
 
     let chart_container = document.getElementById('chart_container')
     chart = echarts.init(chart_container);
     
     chart.getZr().on('click',chartClicked)
-
-
-    console.log("Connections: ", connections)
-    let cons = get_connection_list(connections);
-    let pos_ls = position_to_data_arr(positions);
-
-    console.log("Connection List: ", cons)
-    console.log("Positions: ", pos_ls)
-    
-
-
-
+    chart.on('click', nodeClicked)
     var option = {
         title: [
             { text: "Neuron Activity", left: "10%", top: "5%" }, // Left chart title
@@ -300,16 +298,11 @@ function get_connection_list(connections){
             { type: "value", gridIndex: 1}, // Right top chart
             { type: "value", gridIndex: 2}  // Right bottom chart
         ],
-        dataZoom: [
-
-        //zoom and scroll functions
-        { type: 'inside', xAxisIndex: [0]},{ type: 'inside', yAxisIndex: [0]},
-
-    ],
+        //dataZoom: [{ type: 'inside', xAxisIndex: [0]},{ type: 'inside', yAxisIndex: [0]}],
 
 
         // Define Series (Assigning Data to Different Grids)
-        tooltip:{ 
+        tooltip: { 
             trigger:"item",
             formatter: function (params) {
                 if (params.dataType === "node") {
@@ -326,46 +319,7 @@ function get_connection_list(connections){
                 }
             }
         },
-        series: [
-            {   
-
-                roam: "disabled", 
-                //meta
-                name: "Neuron Activity", 
-                type: "graph", 
-
-                //positon
-                xAxisIndex: 0,
-                yAxisIndex: 0,
-
-                //charting settings
-                layout: "force",
-                coordinateSystem: 'cartesian2d',
-
-                //symbol style
-                symbolSize: 30, 
-                label: { 
-                    show: true,
-                    fontSize:14 
-                }, 
-
-                //edge style
-                edgeSymbol: ['circle', 'arrow'], 
-                edgeSymbolSize: [4, 8], 
-
-                //data
-                data: pos_ls,
-                links: cons,
-
-                lineStyle:{
-                    color:"#000000"
-                },
-
-
-            },
-            { name: "Membrane Potential", type: "line", data: [2, 4, 3], xAxisIndex: 1, yAxisIndex: 1 }, // Right top chart
-            { name: "Synapse Dynamics", type: "bar", data: [5, 2, 6], xAxisIndex: 2, yAxisIndex: 2 }  // Right bottom chart
-        ]
+        series:buildSeries(positions, connections),
     };
     // Apply options
     if (chart){
@@ -373,6 +327,84 @@ function get_connection_list(connections){
     }else{
         console.error("Echart instance failed to init")
     }
-    iterateSim()
+    updateGraph(positions, connections)
+
+}
+function buildSeries(positions, connections){
+    //builds the 3 series for each graph
+    console.log("Connections: ", connections)
+    let cons = get_connection_list(connections);
+    let pos_ls = position_to_data_arr(positions);
+
+    console.log("Electrodes:", electrodes)
+
+    //why the do I have to do this, concat refused to work.
+    electrodes.map(electrode => pos_ls.push(electrode))
+
+    console.log("Connection List: ", cons)
+    console.log("Positions: ", pos_ls)
+
+    let series= [
+        {   
+
+            roam: "disabled", 
+            //meta
+            name: "Neuron Activity", 
+            type: "graph", 
+
+            //positon
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+
+            //charting settings
+            layout: "force",
+            coordinateSystem: 'cartesian2d',
+
+            //symbol style
+            symbolSize: 30, 
+            label: {
+                show: true,
+                fontSize:14 
+            }, 
+
+            //edge style
+            edgeSymbol: ['circle', 'arrow'], 
+            edgeSymbolSize: [4, 8], 
+
+            //data
+            data: pos_ls,
+            links: cons,
+
+            lineStyle:{
+                color:"#000000"
+            },
+
+        },
+        { name: "Membrane Potential", type: "line", data: [2, 4, 3], xAxisIndex: 1, yAxisIndex: 1 }, // Right top chart
+        { name: "Synapse Dynamics", type: "bar", data: [5, 2, 6], xAxisIndex: 2, yAxisIndex: 2 }  // Right bottom chart
+    ]
+    return series;
 }
 
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+function verifyUpdate(data, oldData){
+
+}
+function updateGraph(positions, connections){
+    let series = buildSeries(positions, connections)
+    clearTimeout(updateTimeout)
+
+    chart.setOption({
+        series:series,
+        animation: false
+    });
+    requestAnimationFrame(() => {
+        iterateSim()
+    })
+    
+
+       
+}

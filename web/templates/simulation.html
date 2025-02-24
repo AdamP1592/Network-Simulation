@@ -4,11 +4,25 @@
 
 <script type="module" src="{{url_for('static', filename='graph/graph.js') }}"></script>
 <link rel="stylesheet" href="{{url_for('static', filename='graph/graph.css') }}">
-
+<h1> Network Simulation </h1>
 <figure id = "main_graph">
     <div id = "chart_container">
 
     </div>
-    <figcaption> Neuron simulation </figcaption>
-    <input type="range">
 </figure>
+<section id="chart_bottom">
+    <ul id="left_inputs">
+        <li id="pause_button_container">
+            <button id="pause_button" class="play" type="button">
+        </li>
+    </ul>
+    <ul id="left_inputs">
+        <li>
+            Electrode Width: 
+            <input id="electrode_width" class="electrode_input" type="text" value="50">
+
+            Electrode Height: 
+            <input id="electrode_height" class="electrode_input" type="text" value="50">
+        </li>
+    </ul>
+</section>

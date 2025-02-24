@@ -74,7 +74,7 @@ def iterate_sim():
 
     sim_dict["vs"] = vs
     print(len(vs))
-    [print(v, file=sys.stderr) for v in vs]
+
 
     return jsonify(sim_dict)
 
