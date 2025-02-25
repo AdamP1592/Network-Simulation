@@ -4,13 +4,8 @@ import {hsbColorRangeFinder} from './color_functions.js'
 var chart;
 //setup for 0: [1, 4, 5], 1: [5, 2], 2:[ 3, 5], 3: [4, 5]
 const connections = {n0:["s0"], n2:["s1"], s0:["n2", "n1"],  s1:["n4", "n3", "n5"]}
-
-const neurons = {n0:[5, 10], n1:[30, 10], n2:[10, 30], n3:[40, 20], n4: [30, 45], n5: [45, 50]}
-
-const synapses = {s0:[8, 15], s1:[25, 35]}
-
-
-const positions = {...neurons, ...synapses}
+var rightClickX;
+var rightClickY;
 
 var paused = false;
 
@@ -124,7 +119,6 @@ function iterateSim(){
             let neurons = data["neurons"]
             let synapses = data["synapses"]
             
-            console.log(synapses)
             let pos_dict = clean_data(neurons, synapses);
             let con_dict = get_connections(synapses)
             
@@ -168,8 +162,7 @@ function setUpNetwork(){
         let con_dict = get_connections(synapses)
 
         buildGraphs(pos_dict, con_dict)
-        
-        console.log("Success", data);
+
     }).catch((error)=>{
         console.error("Error:", error);
     });
@@ -225,8 +218,26 @@ function nodeClicked(params){
         }
     }
 }
+function rightClick(event){
+    rightClickX = event.event.clientX;
+    rightClickY = event.event.clientY;
+}
 function nodeRightClick(event){
-    console.log("RightClick: ", event)
+    
+    if (event.name[0] != "e"){
+        return;
+    }
+   
+    let customMenuElem = document.getElementById("customContextMenuHolder");
+    let clickPosition = event.value;
+
+    let [x, y] = [rightClickX, rightClickY];
+
+    console.log(x,y)
+    customMenuElem.style.left = x + "px";
+    customMenuElem.style.top = y + "px";
+    customMenuElem.style.display = "flex";
+
 }
 function chartClicked(event){
     // Convert click position to chart coordinates
@@ -269,11 +280,17 @@ function get_connection_list(connections){
 function buildGraphs(positions, connections) {
 
     let chart_container = document.getElementById('chart_container')
+
+
+    chart_container.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+      });
     chart = echarts.init(chart_container);
     
     chart.getZr().on('click',chartClicked);
     chart.on('click', nodeClicked);
     chart.on('contextmenu', nodeRightClick);
+    chart.getZr().on('contextmenu', rightClick);
     var option = {
         title: [
             { text: "Neuron Activity", left: "10%", top: "5%" }, // Left chart title
@@ -335,18 +352,11 @@ function buildGraphs(positions, connections) {
 
 }
 function buildSeries(positions, connections){
-    //builds the 3 series for each graph
-    console.log("Connections: ", connections)
     let cons = get_connection_list(connections);
     let pos_ls = position_to_data_arr(positions);
 
-    console.log("Electrodes:", electrodes)
-
     //why the do I have to do this, concat refused to work.
     electrodes.map(electrode => pos_ls.push(electrode))
-
-    console.log("Connection List: ", cons)
-    console.log("Positions: ", pos_ls)
 
     let series= [
         {   
