@@ -1,7 +1,7 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 
 <script type="module" src="{{url_for('static', filename='graph/simulation.js') }}"></script>
-
+<script src="{{url_for('static', filename='graph/contextMenu.js') }}"></script>
 <script type="module" src="{{url_for('static', filename='graph/graph.js') }}"></script>
 <link rel="stylesheet" href="{{url_for('static', filename='graph/graph.css') }}">
 <h1> Network Simulation </h1>
@@ -27,7 +27,7 @@
     </ul>
 </section>
 
-<div id="customContextMenuHolder">
+<div id="customContextMenuHolder" class="overlappingMenu">
     <ul id="customContextMenu">
         <li class="buttonHolder">
             <button>
@@ -36,7 +36,7 @@
         </li>
         <li class="buttonHolder">
             <button>
-                Cosine
+                Square
             </button>
         </li>
         <li class="buttonHolder">
@@ -50,4 +50,20 @@
             </button>
         </li>
     </ul>
+    <div id="contextHoverTwoEntries" class="overlappingMenu contextText">
+        <section>
+            <span>Frequency:</span>
+            <input type="text" class="textField">
+        </section>
+        <section>
+            <span>Amplitude:</span>
+            <input type="text" class="textField">
+        </section>
+        
+    </div>
+    
+    <div id="contextHoverOneEntry" class="overlappingMenu contextText">
+        Current: <input type="text" class="textField">
+    </div>
 </div>
+

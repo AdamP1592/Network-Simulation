@@ -1,11 +1,12 @@
 
 import {hsbColorRangeFinder} from './color_functions.js'
-
+document.addEventListener("DOMContentLoaded",setUpNetwork);
 var chart;
 //setup for 0: [1, 4, 5], 1: [5, 2], 2:[ 3, 5], 3: [4, 5]
 const connections = {n0:["s0"], n2:["s1"], s0:["n2", "n1"],  s1:["n4", "n3", "n5"]}
 var rightClickX;
 var rightClickY;
+var rightClickTarget;
 
 var paused = false;
 
@@ -26,7 +27,6 @@ function pauseRender(){
     
 }
 var isDragging = false
-document.addEventListener("DOMContentLoaded",setUpNetwork);
 function rgbToCss(rgbArray) {
     return `rgb(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]})`;
 }
@@ -223,17 +223,19 @@ function rightClick(event){
     rightClickY = event.event.clientY;
 }
 function nodeRightClick(event){
-    
+    //catch case if non electrode node is clicked
     if (event.name[0] != "e"){
         return;
     }
-   
+
+    rightClickTarget = event.rightClick; 
+
     let customMenuElem = document.getElementById("customContextMenuHolder");
     let clickPosition = event.value;
 
     let [x, y] = [rightClickX, rightClickY];
 
-    console.log(x,y)
+    
     customMenuElem.style.left = x + "px";
     customMenuElem.style.top = y + "px";
     customMenuElem.style.display = "flex";
@@ -293,9 +295,9 @@ function buildGraphs(positions, connections) {
     chart.getZr().on('contextmenu', rightClick);
     var option = {
         title: [
-            { text: "Neuron Activity", left: "10%", top: "5%" }, // Left chart title
-            { text: "Membrane Potential", left: "60%", top: "5%" }, // Right top title
-            { text: "Synapse Dynamics", left: "60%", top: "55%" } // Right bottom title
+            { text: "Network Activity", left: "5%", top: "5%" }, // Left chart title
+            { text: "Neuron Dynamics", left: "60%", top: "5%" }, // Right top title
+            { text: "Input Current", left: "60%", top: "50%" } // Right bottom title
         ],
 
         // Define multiple grids (areas for sub-charts)
@@ -400,13 +402,6 @@ function buildSeries(positions, connections){
     return series;
 }
 
-
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-function verifyUpdate(data, oldData){
-
-}
 function updateGraph(positions, connections){
     let series = buildSeries(positions, connections)
     clearTimeout(updateTimeout)
