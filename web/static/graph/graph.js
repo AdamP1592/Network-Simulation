@@ -17,6 +17,7 @@ var addedElectrodes = 0
 let updateTimeout;
 
 function pauseRender(){
+    //branchless approach
     let switchClass = {pause:"play", play:"pause"}
     let switchPause = {pause:false, play:true}
     let btn = document.getElementById("pause_button");
@@ -79,7 +80,6 @@ function get_connections(synapses){
 
         let pre_syn = con["pre"]
         let post_syn = con["post"]
-
         
         //iterate through all pre_syn neurons.
         //Create connections for each neuron that points to this synapse
@@ -187,7 +187,7 @@ function position_to_data_arr(positions){
         {
             name:name.toString(),
             value:[positions[name]["position"][0], positions[name]["position"][1]],
-            
+            inputCurrents:"none",
             //text
             label: {formatter:name.toString(), color:"#000000"},
 
@@ -235,36 +235,84 @@ function nodeRightClick(event){
 
     let [x, y] = [rightClickX, rightClickY];
 
-    
     customMenuElem.style.left = x + "px";
     customMenuElem.style.top = y + "px";
     customMenuElem.style.display = "flex";
+}
 
+function getNeuronsInsideRect(pixelCenterCoords, width, height){
+    //could do the whole collision between circles and rectangles based on the tan line
+    //of the circle and the closest point on the rect but point neurons are easier.
+    console.log(pixelCenterCoords)
+    
+    let electrodeBottom = pixelCenterCoords[1] + (height/2);
+    let electrodeLeft = pixelCenterCoords[0] - (width/2);
+
+    let electrodeTop = electrodeBottom - height;
+    let electrodeRight = electrodeLeft + width;
+
+    console.log(`highestY: ${electrodeTop}, lowestY: ${electrodeBottom}, highestX: ${electrodeRight}, lowestX: ${electrodeLeft}`)
+    
+    let seriesData = chart.getOption().series[0].data
+    let neuronsInElectrodes = []
+
+    for(let key in seriesData){
+
+        let datapoint = seriesData[key]
+        let dataName = datapoint.name
+
+        //only neurons
+        if(dataName[0] != "n"){
+            continue;
+        }
+
+        let pos = datapoint.value
+
+        let [pixelX, pixelY] = chart.convertToPixel({seriesIndex:0}, pos)
+        console.log(pixelX, pixelY)
+        if (pixelX >= electrodeLeft && pixelX <= electrodeRight && 
+            pixelY >= electrodeTop && pixelY <= electrodeBottom) {
+            console.log("Neuron in electrode")
+            neuronsInElectrodes.push(dataName)
+
+        }
+
+    }
+    return neuronsInElectrodes;
+}
+
+function addCurrent(currentType, freq, maxVoltage){
+    
 }
 function chartClicked(event){
     // Convert click position to chart coordinates
-    let width = 50;
-    let height = 50;
+    let width = Number(document.getElementById("electrode_width").value);
+    let height = Number(document.getElementById("electrode_height").value);
 
     let pointInPixel = [event.offsetX, event.offsetY];
-    let pointIsInGrid = chart.containPixel({ seriesIndex: 0}, pointInPixel)
+    let pointIsInGrid = chart.containPixel({ seriesIndex: 0}, pointInPixel);
     let pixelToGrid = chart.convertFromPixel({seriesIndex: 0}, pointInPixel);
 
     
     if (!event["target"] && pointIsInGrid) {
+        //pulling data from the chart
+        let neuronsInBounds = getNeuronsInsideRect(pointInPixel, width, height)
+        //gets the electrodes position
         console.log("Adding");
-        
-        electrodes.push({
+        let electrode = {
             name: `e${addedElectrodes}`,
             symbol: "rect",
             value:[pixelToGrid[0], pixelToGrid[1]],
+            current:"none",
+            connectedNeurons: neuronsInBounds,
 
             symbolSize:[width, height],
             style: { fill: "rgb(112, 112, 112)" }, // Semi-transparent green
             z: -1 // Ensure it's behind the neurons
-        })
+        }
+        electrodes.push(electrode)
+        console.log(electrode)
         addedElectrodes += 1
-        // Add a shape at the clicked position
         
     }
 }
