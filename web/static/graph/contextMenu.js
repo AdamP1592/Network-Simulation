@@ -1,15 +1,24 @@
+import {getTarget} from './graph.js'
 document.addEventListener("DOMContentLoaded",setUpContextMenu);
 
 var menuTarget;
-var menuOpen = false;
-var enterPressed = false;
+var enterPressed;
+
 var textFieldVisible = false;
+var rightClickTarget = "";
 
-function setCurrent(currentType, freq, amplitude){
+var menuButtonFocus;
 
+var electrodeChanges = {}
+
+export function getElectrodeChanges(){
+    let tempChanges = electrodeChanges;
+    electrodeChanges = {}
+    return tempChanges;
 }
 
 function setUpContextMenu(){
+    console.log("Setting up")
     setUpButtonEvents();
 
 }
@@ -27,6 +36,8 @@ function hideTextInputMenus(){
 function contextMenuButtonHover(event){
     var neededData = {Sin:2, Square:2, Constant:1, None:0};
     let btnElem = event.target;
+
+    menuButtonFocus = btnElem;
     
     let menuElem = document.getElementById("customContextMenuHolder");
 
@@ -38,19 +49,26 @@ function contextMenuButtonHover(event){
 
     let oneEntryElem =  document.getElementById("contextHoverOneEntry");
     let twoEntryElem = document.getElementById("contextHoverTwoEntries");
+    
+    let textMenuHeightMult = 1;
 
     switch(numEntries){
         case 1:
             menuTarget = oneEntryElem;
             //hides the other textfield
             twoEntryElem.style.display = "none";
+            textMenuHeightMult = 2;
             break;
         case 2:
             menuTarget = twoEntryElem;
             //hides the other textfield
             oneEntryElem.style.display = "none";
+            
             break;
         default:
+            menuTarget = null;
+            menuButtonFocus = null;
+
             textFieldVisible = false;
             oneEntryElem.style.display = "none";
             twoEntryElem.style.display = "none";
@@ -58,7 +76,9 @@ function contextMenuButtonHover(event){
             
     }
     textFieldVisible = true;
-    setTextInputMenus(rect.width + 4, rect.top - topMenu);
+
+    let normalizedHeight = textMenuHeightMult * rect.height;
+    setTextInputMenus(rect.width, (rect.top + normalizedHeight) - topMenu);
     
 }
 function keyReleased(event){
@@ -76,9 +96,37 @@ function keyPressed(event){
     var key = event.keyCode;
     if(key == 13){
         enterPressed = true;
+        if(textFieldVisible){
+            rightClickTarget = getTarget();
+
+            electrodeChanges[rightClickTarget] = getTextInputParams();
+        }
+        console.log(electrodeChanges)
     }
 }
+function getTextInputParams(){
+    var params = {}
+    let inputSections = menuTarget.getElementsByClassName("textField");
+    
+    
+    let currentType = menuButtonFocus.innerText.trim();
+    params["currentType"] = currentType
+
+    for(let menuItemIndex in inputSections){
+        let section = inputSections[menuItemIndex]
+        if(section.id){
+            
+            params[section.id] = Number(section.value)
+        }
+    }
+    return params;
+    
+}
 function hideMenu(){
+    menuTarget = null;
+    menuButtonFocus = null;
+
+    textFieldVisible = false;
     textFieldVisible = false;
     let oneEntryElem =  document.getElementById("contextHoverOneEntry");
     let twoEntryElem = document.getElementById("contextHoverTwoEntries");

@@ -76,7 +76,7 @@
     cursor:pointer;
 }
 .contextText{
-    width:150%;
+    width:200%;
     white-space: nowrap;
     display:none;
 }

@@ -1,9 +1,12 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 
 <script type="module" src="{{url_for('static', filename='graph/simulation.js') }}"></script>
-<script src="{{url_for('static', filename='graph/contextMenu.js') }}"></script>
+
 <script type="module" src="{{url_for('static', filename='graph/graph.js') }}"></script>
+<script type="module" src="{{url_for('static', filename='graph/contextMenu.js') }}"></script>
+
 <link rel="stylesheet" href="{{url_for('static', filename='graph/graph.css') }}">
+
 <h1> Network Simulation </h1>
 <figure id = "main_graph">
     <div id = "chart_container">
@@ -52,18 +55,18 @@
     </ul>
     <div id="contextHoverTwoEntries" class="overlappingMenu contextText">
         <section>
-            <span>Frequency:</span>
-            <input type="number" class="textField" value="0">
+            <span>Frequency(hz):</span>
+            <input type="text" class="textField" id = "freq" value="0">
         </section>
         <section>
-            <span>Amplitude:</span>
-            <input type="number" class="textField" value="0">
+            <span>Max Current(µA):</span>
+            <input type="text" class="textField" id="maxCurrent" value="0">
         </section>
         
     </div>
     
     <div id="contextHoverOneEntry" class="overlappingMenu contextText">
-        Current: <input type="number" class="textField" value="0">
+        Current(µA): <input type="text" id="maxCurrent" class="textField" value="0">
     </div>
 </div>
 

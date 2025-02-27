@@ -1,12 +1,17 @@
 
 import {hsbColorRangeFinder} from './color_functions.js'
+import {getElectrodeChanges} from './contextMenu.js'
+
+
 document.addEventListener("DOMContentLoaded",setUpNetwork);
 var chart;
 //setup for 0: [1, 4, 5], 1: [5, 2], 2:[ 3, 5], 3: [4, 5]
 const connections = {n0:["s0"], n2:["s1"], s0:["n2", "n1"],  s1:["n4", "n3", "n5"]}
+
+var rightClickTarget = null;
+
 var rightClickX;
 var rightClickY;
-var rightClickTarget;
 
 var paused = false;
 
@@ -15,6 +20,10 @@ var electrodes = []
 var addedElectrodes = 0
 
 let updateTimeout;
+
+export function getTarget(){
+    return rightClickTarget;
+}
 
 function pauseRender(){
     //branchless approach
@@ -223,12 +232,13 @@ function rightClick(event){
     rightClickY = event.event.clientY;
 }
 function nodeRightClick(event){
+    console.log(event)
     //catch case if non electrode node is clicked
     if (event.name[0] != "e"){
         return;
     }
 
-    rightClickTarget = event.rightClick; 
+    rightClickTarget = event.name; 
 
     let customMenuElem = document.getElementById("customContextMenuHolder");
     let clickPosition = event.value;
@@ -304,6 +314,8 @@ function chartClicked(event){
             symbol: "rect",
             value:[pixelToGrid[0], pixelToGrid[1]],
             current:"none",
+            currentType:"none",
+            freq:"none",
             connectedNeurons: neuronsInBounds,
 
             symbolSize:[width, height],
@@ -405,6 +417,21 @@ function buildSeries(positions, connections){
     let cons = get_connection_list(connections);
     let pos_ls = position_to_data_arr(positions);
 
+    let electrodeChanges = getElectrodeChanges()
+
+    console.log("Pre-change:", electrodes)
+    
+    electrodes.forEach((electrode)=>{
+        if(electrodeChanges[electrode.name]){
+            console.log(electrodeChanges[electrode.name])
+            for(let key in electrodeChanges[electrode.name]){
+                console.log(key)
+                electrode[key] = electrodeChanges[electrode.name][key];
+            }
+            console.log("Post Change:", electrode)
+        }
+    });
+    console.log(electrodes)
     //why the do I have to do this, concat refused to work.
     electrodes.map(electrode => pos_ls.push(electrode))
 
@@ -451,7 +478,8 @@ function buildSeries(positions, connections){
 }
 
 function updateGraph(positions, connections){
-    let series = buildSeries(positions, connections)
+
+    let series = buildSeries(positions, connections);
     clearTimeout(updateTimeout)
 
     chart.setOption({
@@ -461,7 +489,4 @@ function updateGraph(positions, connections){
     requestAnimationFrame(() => {
         iterateSim()
     })
-    
-
-       
 }
