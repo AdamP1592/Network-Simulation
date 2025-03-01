@@ -63,20 +63,48 @@ def get_graph_template():
 def iterate_sim():
     global sim
 
-    ## 10 seconds
-    num_steps = int(1/sim.dt)
+    ##  get 5 seconds of sim data. Add that to the dict
 
+    num_steps = int(5/sim.dt)
+    t = sim.t
     sim.iterate(num_steps)
 
-    vs = sim.vs
+    vs = sim.vs[-num_steps:]
 
     sim_dict = sim.generate_model_dict()
 
     sim_dict["vs"] = vs
-    print(len(vs))
-
 
     return jsonify(sim_dict)
+
+@app.route("/simulation/setCurrent", methods=['POST'])
+def set_current():
+    global sim
+    data = request.get_json()
+    for neuron_index in data:  
+
+        stim_params = data[neuron_index]
+        neuron_stim_type = stim_params["currentType"]
+
+        neuron_index = int(neuron_index)
+
+        neuron = sim.neuron_models[neuron_index]
+
+        print(stim_params)
+        
+        if neuron_stim_type == "Square":
+            neuron.set_square_current(stim_params["freq"], stim_params["maxCurrent"])
+
+        elif neuron_stim_type == "Sin":
+            neuron.set_sin_current(stim_params["freq"], stim_params["maxCurrent"])
+
+        elif neuron_stim_type == "Constant":
+            neuron.set_const_current(stim_params["maxCurrent"])
+
+        elif neuron_stim_type == "None":
+            neuron.set_no_current()
+
+    return jsonify(sim.generate_model_dict())
 
 @app.route("/simulation/startSim", methods=['POST'])
 def setup_sim():

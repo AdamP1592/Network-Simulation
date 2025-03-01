@@ -78,7 +78,7 @@ function contextMenuButtonHover(event){
     textFieldVisible = true;
 
     let normalizedHeight = textMenuHeightMult * rect.height;
-    setTextInputMenus(rect.width, (rect.top + normalizedHeight) - topMenu);
+    setTextInputMenus(rect.width, (rect.top) - topMenu);
     
 }
 function keyReleased(event){

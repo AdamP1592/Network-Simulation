@@ -261,9 +261,7 @@ function getNeuronsInsideRect(pixelCenterCoords, width, height){
     let electrodeTop = electrodeBottom - height;
     let electrodeRight = electrodeLeft + width;
 
-    console.log(`highestY: ${electrodeTop}, lowestY: ${electrodeBottom}, highestX: ${electrodeRight}, lowestX: ${electrodeLeft}`)
-    
-    let seriesData = chart.getOption().series[0].data
+    let seriesData = chart.getOption().series[1].data
     let neuronsInElectrodes = []
 
     for(let key in seriesData){
@@ -282,18 +280,14 @@ function getNeuronsInsideRect(pixelCenterCoords, width, height){
         console.log(pixelX, pixelY)
         if (pixelX >= electrodeLeft && pixelX <= electrodeRight && 
             pixelY >= electrodeTop && pixelY <= electrodeBottom) {
-            console.log("Neuron in electrode")
             neuronsInElectrodes.push(dataName)
-
+            console.log("neuronInElectrode")
         }
 
     }
     return neuronsInElectrodes;
 }
 
-function addCurrent(currentType, freq, maxVoltage){
-    
-}
 function chartClicked(event){
     // Convert click position to chart coordinates
     let width = Number(document.getElementById("electrode_width").value);
@@ -319,8 +313,7 @@ function chartClicked(event){
             connectedNeurons: neuronsInBounds,
 
             symbolSize:[width, height],
-            style: { fill: "rgb(112, 112, 112)" }, // Semi-transparent green
-            z: -1 // Ensure it's behind the neurons
+            style: { fill: "rgb(112, 112, 112)" }
         }
         electrodes.push(electrode)
         console.log(electrode)
@@ -346,13 +339,14 @@ function buildGraphs(positions, connections) {
 
     chart_container.addEventListener('contextmenu', function(e) {
         e.preventDefault();
-      });
+    });
     chart = echarts.init(chart_container);
     
     chart.getZr().on('click',chartClicked);
     chart.on('click', nodeClicked);
     chart.on('contextmenu', nodeRightClick);
     chart.getZr().on('contextmenu', rightClick);
+
     var option = {
         title: [
             { text: "Network Activity", left: "5%", top: "5%" }, // Left chart title
@@ -413,29 +407,80 @@ function buildGraphs(positions, connections) {
     updateGraph(positions, connections)
 
 }
+function addCurrent(currentDict){
+    
+    console.log("Adding current", currentDict)
+
+    fetch('/simulation/setCurrent', {
+        method:'POST',
+        headers:{
+            'Content-Type': 'application/json'
+        },
+        body:JSON.stringify(currentDict)
+    })
+    
+}
 function buildSeries(positions, connections){
     let cons = get_connection_list(connections);
     let pos_ls = position_to_data_arr(positions);
 
     let electrodeChanges = getElectrodeChanges()
-
-    console.log("Pre-change:", electrodes)
-    
+    //apply changes from contextMenu to electrodes. NEEDS TO APPLY CHANGES TO NEURON
     electrodes.forEach((electrode)=>{
         if(electrodeChanges[electrode.name]){
             console.log(electrodeChanges[electrode.name])
-            for(let key in electrodeChanges[electrode.name]){
-                console.log(key)
+
+            //merge dicts
+
+            for(let key in electrodeChanges[electrode.name]){ 
                 electrode[key] = electrodeChanges[electrode.name][key];
             }
-            console.log("Post Change:", electrode)
+            let currentBuilder = {}
+            for(let i in electrode["connectedNeurons"]){
+                let neuronName = electrode["connectedNeurons"][i]
+                //neuronIndex
+                currentBuilder[neuronName[1]] = electrodeChanges[electrode.name]
+                
+            }
+            console.log(currentBuilder)
+            addCurrent(currentBuilder)
         }
     });
-    console.log(electrodes)
     //why the do I have to do this, concat refused to work.
-    electrodes.map(electrode => pos_ls.push(electrode))
+
+    //electrodes.map(electrode => pos_ls.push(electrode))
 
     let series= [
+        {  
+        //electrode graph placed behind neuron activity
+        roam: "enabled", 
+        type: "graph", 
+
+        //positon
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        z:0,
+        zlevel:0,
+
+        //charting settings
+        layout: "force",
+        coordinateSystem: 'cartesian2d',
+
+        //symbol style
+        symbolSize: 30, 
+        label: {
+            show: true,
+            fontSize:14 
+        }, 
+
+        //edge style
+        edgeSymbol: ['circle', 'arrow'], 
+        edgeSymbolSize: [4, 8], 
+
+        //data
+        data: electrodes,
+
+        },
         {   
 
             roam: "enabled", 
@@ -446,6 +491,8 @@ function buildSeries(positions, connections){
             //positon
             xAxisIndex: 0,
             yAxisIndex: 0,
+            z:10,
+            zlevel:0,
 
             //charting settings
             layout: "force",
