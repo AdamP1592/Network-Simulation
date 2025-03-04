@@ -51,7 +51,7 @@ function clean_data(neurons, synapses){
         let neuron = neurons[neuron_ind]
         let neuron_params = neuron["neuron_params"]
 
-        let color = hsbColorRangeFinder(0, 70, neuron_params["vrest"], neuron_params["vthresh"], neuron_params["v"])
+        let color = hsbColorRangeFinder(0, 70, neuron_params["vrest"] - 1, neuron_params["vthresh"], neuron_params["v"])
         
         let x = neuron_params["x"]
         let y = neuron_params["y"]
@@ -78,7 +78,7 @@ function get_connections(synapses){
 
     //generates a dict of connections, splitting out synapses as independent nodes
     let connection_dict = {}
-    console.log("Pulling Connections...")
+    //console.log("Pulling Connections...")
     for (let syn_key in synapses){
 
         let syn = synapses[syn_key]
@@ -123,7 +123,7 @@ function iterateSim(){
 
 
         }).then(data => {
-            console.log("Recieved data:",  data)
+            //console.log("Recieved data:",  data)
 
             let neurons = data["neurons"]
             let synapses = data["synapses"]
@@ -162,7 +162,7 @@ function setUpNetwork(){
 
     }).then(data => {
 
-        console.log("Recieved data:",  data)
+        //console.log("Recieved data:",  data)
 
         let neurons = data["neurons"]
         let synapses = data["synapses"]
@@ -216,23 +216,43 @@ function dragEvent(event){
     console.log(event)
 }
 function nodeClicked(params){
-    console.log("Node Clicked: ", params)
+    
+    let currentData = {currentType: "None"};
+    //console.log("Node Clicked: ", params)
 
-    let nodeName = params["data"]["name"]
-    if(params["componentIndex"] == 0 && nodeName[0] == "e"){//if main graph and node is electrode
+    let nodeName = params["data"]["name"];
+    if(params["componentIndex"] == 0 && nodeName[0] == "e"){
+        //if main graph and node is electrode
         for(let electrodeIndex in electrodes){
-            if(electrodes[electrodeIndex]["name"] == nodeName){
+            let electrode = electrodes[electrodeIndex];
+
+            //find electrode in the electrode dict
+            if(electrode["name"] == nodeName){
+                //since electrode is getting removed, create dict to set all the neurons currents
+                let data = {};
+                for(let neuronNameIndex in electrode["connectedNeurons"]){
+                    //set each neuron in connected neurn to no current
+                    let neuronIndex = electrode["connectedNeurons"][neuronNameIndex][1];
+                    data[neuronIndex] = currentData;
+                }
+
+                //send updates to server
+                addCurrent(data);
+                //remove electrode from dict
                 electrodes.splice(electrodeIndex, 1);
+
             }
         }
     }
 }
 function rightClick(event){
+
+    //sets global right click x and y based on pixel position
     rightClickX = event.event.clientX;
     rightClickY = event.event.clientY;
 }
 function nodeRightClick(event){
-    console.log(event)
+    //console.log(event)
     //catch case if non electrode node is clicked
     if (event.name[0] != "e"){
         return;
@@ -253,7 +273,7 @@ function nodeRightClick(event){
 function getNeuronsInsideRect(pixelCenterCoords, width, height){
     //could do the whole collision between circles and rectangles based on the tan line
     //of the circle and the closest point on the rect but point neurons are easier.
-    console.log(pixelCenterCoords)
+    //console.log(pixelCenterCoords)
     
     let electrodeBottom = pixelCenterCoords[1] + (height/2);
     let electrodeLeft = pixelCenterCoords[0] - (width/2);
@@ -277,11 +297,11 @@ function getNeuronsInsideRect(pixelCenterCoords, width, height){
         let pos = datapoint.value
 
         let [pixelX, pixelY] = chart.convertToPixel({seriesIndex:0}, pos)
-        console.log(pixelX, pixelY)
+        //console.log(pixelX, pixelY)
         if (pixelX >= electrodeLeft && pixelX <= electrodeRight && 
             pixelY >= electrodeTop && pixelY <= electrodeBottom) {
             neuronsInElectrodes.push(dataName)
-            console.log("neuronInElectrode")
+           // console.log("neuronInElectrode")
         }
 
     }
@@ -289,6 +309,9 @@ function getNeuronsInsideRect(pixelCenterCoords, width, height){
 }
 
 function chartClicked(event){
+    if(event.target){
+        return
+    }
     // Convert click position to chart coordinates
     let width = Number(document.getElementById("electrode_width").value);
     let height = Number(document.getElementById("electrode_height").value);
@@ -298,11 +321,11 @@ function chartClicked(event){
     let pixelToGrid = chart.convertFromPixel({seriesIndex: 0}, pointInPixel);
 
     
-    if (!event["target"] && pointIsInGrid) {
+    if (pointIsInGrid) {
         //pulling data from the chart
         let neuronsInBounds = getNeuronsInsideRect(pointInPixel, width, height)
         //gets the electrodes position
-        console.log("Adding");
+        //console.log("Adding");
         let electrode = {
             name: `e${addedElectrodes}`,
             symbol: "rect",
@@ -316,7 +339,7 @@ function chartClicked(event){
             style: { fill: "rgb(112, 112, 112)" }
         }
         electrodes.push(electrode)
-        console.log(electrode)
+        //console.log(electrode)
         addedElectrodes += 1
         
     }
@@ -420,16 +443,11 @@ function addCurrent(currentDict){
     })
     
 }
-function buildSeries(positions, connections){
-    let cons = get_connection_list(connections);
-    let pos_ls = position_to_data_arr(positions);
 
-    let electrodeChanges = getElectrodeChanges()
+function electrodeBuilder(electrodeChanges){
     //apply changes from contextMenu to electrodes. NEEDS TO APPLY CHANGES TO NEURON
     electrodes.forEach((electrode)=>{
         if(electrodeChanges[electrode.name]){
-            console.log(electrodeChanges[electrode.name])
-
             //merge dicts
 
             for(let key in electrodeChanges[electrode.name]){ 
@@ -437,15 +455,24 @@ function buildSeries(positions, connections){
             }
             let currentBuilder = {}
             for(let i in electrode["connectedNeurons"]){
-                let neuronName = electrode["connectedNeurons"][i]
+                let neuronName = electrode["connectedNeurons"][i] 
                 //neuronIndex
                 currentBuilder[neuronName[1]] = electrodeChanges[electrode.name]
                 
             }
-            console.log(currentBuilder)
+            //console.log(currentBuilder)
             addCurrent(currentBuilder)
         }
     });
+}
+function buildSeries(positions, connections){
+
+    let electrodeChanges = getElectrodeChanges()
+    electrodeBuilder(electrodeChanges)
+    let cons = get_connection_list(connections);
+    let pos_ls = position_to_data_arr(positions);
+
+    
     //why the do I have to do this, concat refused to work.
 
     //electrodes.map(electrode => pos_ls.push(electrode))

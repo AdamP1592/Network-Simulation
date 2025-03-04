@@ -92,30 +92,31 @@ function keyReleased(event){
         }
     }
 }
+export function setCurrent(changes){
+    enterPressed = true;
+    
+    rightClickTarget = getTarget();
+    electrodeChanges[rightClickTarget] = changes;
+}
 function keyPressed(event){
     var key = event.keyCode;
-    if(key == 13){
-        enterPressed = true;
-        if(textFieldVisible){
-            rightClickTarget = getTarget();
-
-            electrodeChanges[rightClickTarget] = getTextInputParams();
-        }
-        console.log(electrodeChanges)
+    if(key == 13 && textFieldVisible){
+        setCurrent(getTextInputParams())
     }
 }
 function getTextInputParams(){
     var params = {}
     let inputSections = menuTarget.getElementsByClassName("textField");
     
-    
+    //pulls text from the currently opened menu
     let currentType = menuButtonFocus.innerText.trim();
+    //sets current type
     params["currentType"] = currentType
-
+    //iterates through the open text menu to pulll data from display
     for(let menuItemIndex in inputSections){
         let section = inputSections[menuItemIndex]
+        //only the items that contain an id, some other elements pop up
         if(section.id){
-            
             params[section.id] = Number(section.value)
         }
     }
@@ -141,7 +142,9 @@ function contextMenuButtonLeave(event){
     hideMenu()
 }  
 function noCurrentButtonClicked(event){
-    console.log("Set electrode to no current");
+    console.log("No current Clicked")
+    let currentDict = {currentType:"None"}
+    setCurrent(currentDict)
     hideMenu()
 }
 function setUpButtonEvents(){

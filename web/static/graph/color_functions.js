@@ -1,27 +1,51 @@
-function hsbToRGB(h, s, b){
+function hsbToRgb(h, s, v){
+    var r, g, b;
 
-    s /= 100
-    b /= 100
+    var c = v * s;
 
-    const i = Math.floor(h * 6); //for rgb calc
-    const f = h * 6 - i;
-    const p = b * (1 - s);
-    const q = b * (1 - f * s);
-    const t = b * (1 - (1 - f) * s);
+    var hPrime = h/60;
+
+    let hMod = Math.abs( (hPrime % 2) - 1 )
+    var x = c * (1 - hMod)
+    var m = v - c
+
+    var value = Math.floor(h / 60);
+
     
-    let r, g, b1;
-    //
-    switch (i % 6) {
-      case 0: r = b, g = t, b1 = p; break; //  0 <= h <= 60
-      case 1: r = q, g = b, b1 = p; break; // (60, 120)
-      case 2: r = p, g = b, b1 = t; break; // (120, 180)
-      case 3: r = p, g = q, b1 = b; break; // (180, 240)
-      case 4: r = t, g = p, b1 = b; break; // (240, 300)
-      case 5: r = b, g = p, b1 = q; break; // (300, 360)
+    switch(value){
+        case 0: r = c, g = x, b = 0; break;
+        case 1: r = x, g = c, b = 0; break;
+        case 2: r = 0, g = c, b = x; break;
+        case 3: r = 0, g = x, b = c; break;
+        case 4: r = x, g = 0, b = c; break;
+        case 5: r = v, g = 0, b = q; break;
     }
-    
-    let rgb = [Math.round(r * 255), Math.round(g * 255), Math.round(b1 * 255)];
-    return rgb;
+
+    return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+}
+
+
+
+
+function hsvToRgb(h, s, v){
+    var r, g, b;
+
+    var i = Math.floor(h * 6);
+    var f = h * 6 - i;
+    var p = v * (1 - s);
+    var q = v * (1 - f * s);
+    var t = v * (1 - (1 - f) * s);
+
+    switch(i % 6){
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+
+    return [r * 255, g * 255, b * 255];
 }
 
 //for neurons min = 0, max = 70,
@@ -36,16 +60,22 @@ function hueInterpolator(minH, maxH, minValue, maxValue, value){
 //
 export function hsbColorRangeFinder(minH, maxH, minVal, maxVal, val){
     //edge cases
+    console.log(val)
+    let tempVal = val
+    if (val < minVal){ tempVal = minVal}
+    if (val > maxVal){ tempVal = maxVal}
+    let h = hueInterpolator(minH, maxH, minVal, maxVal, tempVal);;
+    
+    if (val > maxVal + 1){
+        h = 115;
+    }
 
     
-    if (val < minVal){ val = minVal}
-    if (val > maxVal){ val = maxVal}
+    let s = 1;
+    let b = 1;
+    let rgb = hsbToRgb(h, s, b);
 
-    let h = hueInterpolator(minH, maxH, minVal, maxVal, val);
-    let s = 100;
-    let b = 100;
-
-    let rgb = hsbToRGB(h, s, b);
+    console.log(rgb)
 
     return rgb
 }
