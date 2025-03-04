@@ -16,10 +16,12 @@ var rightClickY;
 var paused = false;
 
 var electrodes = []
+var focusedNeuronData = [];
 
 var addedElectrodes = 0
 
-let updateTimeout;
+var displayStartTime;
+
 
 export function getTarget(){
     return rightClickTarget;
@@ -215,33 +217,53 @@ function position_to_data_arr(positions){
 function dragEvent(event){
     console.log(event)
 }
-function nodeClicked(params){
-    
+function removeElectrode(nodeName){
     let currentData = {currentType: "None"};
-    //console.log("Node Clicked: ", params)
+    //remove electrode with the name nodeName from electrodes and
+    //remove current from each neuron in simulation
+    for(let electrodeIndex in electrodes){
+        let electrode = electrodes[electrodeIndex];
 
-    let nodeName = params["data"]["name"];
-    if(params["componentIndex"] == 0 && nodeName[0] == "e"){
-        //if main graph and node is electrode
-        for(let electrodeIndex in electrodes){
-            let electrode = electrodes[electrodeIndex];
-
-            //find electrode in the electrode dict
-            if(electrode["name"] == nodeName){
-                //since electrode is getting removed, create dict to set all the neurons currents
-                let data = {};
-                for(let neuronNameIndex in electrode["connectedNeurons"]){
-                    //set each neuron in connected neurn to no current
-                    let neuronIndex = electrode["connectedNeurons"][neuronNameIndex][1];
-                    data[neuronIndex] = currentData;
-                }
-
-                //send updates to server
-                addCurrent(data);
-                //remove electrode from dict
-                electrodes.splice(electrodeIndex, 1);
-
+        //find electrode in the electrode dict
+        if(electrode["name"] == nodeName){
+            //since electrode is getting removed, create dict to set all the neurons currents
+            let data = {};
+            for(let neuronNameIndex in electrode["connectedNeurons"]){
+                //set each neuron in connected neurn to no current
+                let neuronIndex = electrode["connectedNeurons"][neuronNameIndex][1];
+                data[neuronIndex] = currentData;
             }
+
+            //send updates to server
+            addCurrent(data);
+            //remove electrode from dict
+            electrodes.splice(electrodeIndex, 1);
+
+        }
+    }
+
+}
+
+function nodeClicked(params){
+    let nodeName = params["data"]["name"];
+
+    //if event is a part of the first component(main graph)
+    if(params["componentIndex"] == 0){
+
+        switch(nodeName[0]){
+            //if electrode is clicked
+            case "e":
+                removeElectrode(nodeName);
+                break;
+            case "n":
+                focusNeuron(nodeName);
+                break;
+            case "s":
+                //do synapse thing
+                break;
+            default:
+                console.warn(`Warning: Unknown nodeType:${nodeName} detected`)
+                break;
         }
     }
 }
@@ -469,6 +491,7 @@ function buildSeries(positions, connections){
 
     let electrodeChanges = getElectrodeChanges()
     electrodeBuilder(electrodeChanges)
+
     let cons = get_connection_list(connections);
     let pos_ls = position_to_data_arr(positions);
 
@@ -554,13 +577,25 @@ function buildSeries(positions, connections){
 function updateGraph(positions, connections){
 
     let series = buildSeries(positions, connections);
-    clearTimeout(updateTimeout)
 
+    let newTime = Date.now()
+    
+    let timeDifferencePerUpdate = newTime - curTime;
+    let updateTime = 5000; // each update is 5 seconds in sim time
+
+    //dynamic number of steps based on the passed step time
+
+    let numSteps = Math.trunc(updateTime / timeDifferencePerUpdate);
+
+
+    curTime = Date.now()
     chart.setOption({
         series:series,
         animation: false
     });
+    
     requestAnimationFrame(() => {
+        let newTime = Date.now();
         iterateSim()
     })
 }
