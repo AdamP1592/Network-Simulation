@@ -15,12 +15,10 @@ var rightClickY;
 
 var paused = false;
 
-var electrodes = []
-var focusedNeuronData = [];
+var electrodes = [];
+var addedElectrodes = 0;
 
-var addedElectrodes = 0
-
-var displayStartTime;
+var curTime = Date.now();
 
 
 export function getTarget(){
@@ -43,6 +41,7 @@ function rgbToCss(rgbArray) {
     return `rgb(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]})`;
 }
 
+//processes neuron and synapse data into an object containing each datapoint
 function clean_data(neurons, synapses){
     //combines all the neurons and synapses into one dictionary to used for storing positions
     //and style for the display
@@ -126,14 +125,8 @@ function iterateSim(){
 
         }).then(data => {
             //console.log("Recieved data:",  data)
-
-            let neurons = data["neurons"]
-            let synapses = data["synapses"]
             
-            let pos_dict = clean_data(neurons, synapses);
-            let con_dict = get_connections(synapses)
-            
-            updateGraph(pos_dict, con_dict)
+            updateGraph(data)
         }).catch((error)=>{
             console.error("Error:", error);
         });
@@ -164,15 +157,7 @@ function setUpNetwork(){
 
     }).then(data => {
 
-        //console.log("Recieved data:",  data)
-
-        let neurons = data["neurons"]
-        let synapses = data["synapses"]
-
-        let pos_dict = clean_data(neurons, synapses);
-        let con_dict = get_connections(synapses)
-
-        buildGraphs(pos_dict, con_dict)
+        buildGraphs(data)
 
     }).catch((error)=>{
         console.error("Error:", error);
@@ -377,7 +362,7 @@ function get_connection_list(connections){
     return connection_list
 }
 
-function buildGraphs(positions, connections) {
+function buildGraphs(simDict) {
 
     let chart_container = document.getElementById('chart_container')
 
@@ -436,12 +421,11 @@ function buildGraphs(positions, connections) {
                     }
                 
                 } else if (params.dataType === "edge") {
-                    
                     return `Synapse: <b>${params.data.source} → ${params.data.target}</b>`;
                 }
             }
         },
-        series:buildSeries(positions, connections),
+        series:buildSeries(simDict),
     };
     // Apply options
     if (chart){
@@ -449,7 +433,7 @@ function buildGraphs(positions, connections) {
     }else{
         console.error("Echart instance failed to init")
     }
-    updateGraph(positions, connections)
+    updateGraph(simDict)
 
 }
 function addCurrent(currentDict){
@@ -487,13 +471,19 @@ function electrodeBuilder(electrodeChanges){
         }
     });
 }
-function buildSeries(positions, connections){
+function buildSeries(simDict){
+
+    let neurons = simDict["neurons"]
+    let synapses = simDict["synapses"]
+    
+    let pos_dict = clean_data(neurons, synapses);
+    let con_dict = get_connections(synapses)
 
     let electrodeChanges = getElectrodeChanges()
     electrodeBuilder(electrodeChanges)
 
-    let cons = get_connection_list(connections);
-    let pos_ls = position_to_data_arr(positions);
+    let cons = get_connection_list(con_dict);
+    let pos_ls = position_to_data_arr(pos_dict);
 
     
     //why the do I have to do this, concat refused to work.
@@ -574,19 +564,27 @@ function buildSeries(positions, connections){
     return series;
 }
 
-function updateGraph(positions, connections){
+function updateGraph(simData){
 
-    let series = buildSeries(positions, connections);
+    let newTime = Date.now();
 
-    let newTime = Date.now()
+    //split data into equal portions of numSteps
+    //build a series with options for each step
+    //run each series as an option with an animation that fills durration
+    //halfway through the animation at the middlemost or just prior to the middlemost
+    //timestep pull the data for the next animation
+    //once the last update is called, build a new series with the new options.
+
+    let series = buildSeries(simData);    
     
     let timeDifferencePerUpdate = newTime - curTime;
     let updateTime = 5000; // each update is 5 seconds in sim time
 
     //dynamic number of steps based on the passed step time
 
-    let numSteps = Math.trunc(updateTime / timeDifferencePerUpdate);
-
+    let updateTimeToTimeDifferenceRatio = Math.trunc(updateTime / timeDifferencePerUpdate);
+    
+    console.log(numSteps)
 
     curTime = Date.now()
     chart.setOption({
@@ -597,5 +595,5 @@ function updateGraph(positions, connections){
     requestAnimationFrame(() => {
         let newTime = Date.now();
         iterateSim()
-    })
+    });
 }

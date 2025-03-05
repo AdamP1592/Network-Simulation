@@ -86,6 +86,8 @@ if __name__ == '__main__':
 
 
     sim = create_sim(5, 5, 5)
+    sim.iterate(10000)
+
     #sim.setup_old_instance_from_dict(sim_dict)
     """
     dt = 0.001

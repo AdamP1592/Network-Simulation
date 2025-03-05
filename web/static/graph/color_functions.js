@@ -60,7 +60,6 @@ function hueInterpolator(minH, maxH, minValue, maxValue, value){
 //
 export function hsbColorRangeFinder(minH, maxH, minVal, maxVal, val){
     //edge cases
-    console.log(val)
     let tempVal = val
     if (val < minVal){ tempVal = minVal}
     if (val > maxVal){ tempVal = maxVal}
@@ -74,8 +73,6 @@ export function hsbColorRangeFinder(minH, maxH, minVal, maxVal, val){
     let s = 1;
     let b = 1;
     let rgb = hsbToRgb(h, s, b);
-
-    console.log(rgb)
 
     return rgb
 }

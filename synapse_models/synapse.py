@@ -148,7 +148,6 @@ class tsodyks_markram_synapse():
             #if this pre synaptic neuron is active
             if self.is_active[i]:
                 if self.t == self.past_spike_times[i]:
-                    print("\nspike")
                     has_past_spike = True
                     #for dirac equation estimation
                     self.r = self.r_past - (self.u_past * self.r_past)

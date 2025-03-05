@@ -42,7 +42,7 @@ def templates(filename):
     template = template.replace("%%", template_connection)
 """
 
-
+import time
 def build_page(page_route_str):
 
     return render_template("background.html")
@@ -62,7 +62,7 @@ def get_graph_template():
 @app.route("/simulation/iterateSim", methods=['POST'])
 def iterate_sim():
     global sim
-
+    t = time.time()
     ##  get 5 seconds of sim data. Add that to the dict
 
     num_steps = int(5/sim.dt)
@@ -74,7 +74,7 @@ def iterate_sim():
     sim_dict = sim.generate_model_dict()
 
     sim_dict["vs"] = vs
-
+    print(time.time()  - t) 
     return jsonify(sim_dict)
 
 @app.route("/simulation/setCurrent", methods=['POST'])
@@ -128,13 +128,12 @@ def home():
 @app.route("/about")
 def about():
     return render_template("background.html", page_name=f"about.html")
-
-
-
 #Async js requests
 
 @app.route("/simulation/sim_data", methods=["GET"])
 def sim_data():
+
+
     js_file = ""
     print("./web/templates/dynamic/simulation_data.js")
     with open("/web/templates/home.html") as f:
