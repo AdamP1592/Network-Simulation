@@ -2,6 +2,11 @@
 import {hsbColorRangeFinder} from './color_functions.js'
 import {getElectrodeChanges} from './contextMenu.js'
 
+import {iterateSim} from './comms.js'
+import {setUpNetwork} from './comms.js'
+import {addCurrent} from './comms.js'
+
+
 
 document.addEventListener("DOMContentLoaded",setUpNetwork);
 var chart;
@@ -20,12 +25,21 @@ var addedElectrodes = 0;
 
 var curTime = Date.now();
 
-
+//exports right click target to get used by context menu
 export function getTarget(){
     return rightClickTarget;
 }
+/*
 
-function pauseRender(){
+    SIMPLE HELPER FUNCTIONS
+
+*/
+
+function rgbToCss(rgbArray) {
+    return `rgb(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]})`;
+}
+
+export function pauseRender(){
     //branchless approach
     let switchClass = {pause:"play", play:"pause"}
     let switchPause = {pause:false, play:true}
@@ -36,11 +50,13 @@ function pauseRender(){
     btn.className = switchClass[btn.className]
     
 }
-var isDragging = false
-function rgbToCss(rgbArray) {
-    return `rgb(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]})`;
-}
 
+
+/*
+
+    DATA HELPER FUNCTIONS
+
+*/
 //processes neuron and synapse data into an object containing each datapoint
 function clean_data(neurons, synapses){
     //combines all the neurons and synapses into one dictionary to used for storing positions
@@ -110,61 +126,6 @@ function get_connections(synapses){
     return connection_dict;
 }
 
-function iterateSim(){
-    if (!paused){
-        
-        fetch('/simulation/iterateSim', {
-            method:'POST',
-
-        }).then( response => {
-            if(!response.ok){
-                throw new Error("Response was not ok");
-            }
-            return response.json();
-
-
-        }).then(data => {
-            //console.log("Recieved data:",  data)
-            
-            updateGraph(data)
-        }).catch((error)=>{
-            console.error("Error:", error);
-        });
-    }else{
-        setTimeout(iterateSim, 1000)
-    }
-}
-function setUpNetwork(){
-    let btn = document.getElementById("pause_button");
-    btn.addEventListener('click',pauseRender)
-
-    let numNeurons = prompt("Please enter number of neurons:", "0");
-
-    let networkParams = {"numNeurons": numNeurons, dimensions:{x:"5", y:"5"}};
-    fetch('/simulation/startSim',{
-        method:'POST',
-        headers: {
-            "Content-Type" : 'application/json'
-
-        },
-        body: JSON.stringify(networkParams)
-    }).then( response => {
-        if(!response.ok){
-            throw new Error("Response was not ok");
-        }
-        return response.json();
-
-
-    }).then(data => {
-
-        buildGraphs(data)
-
-    }).catch((error)=>{
-        console.error("Error:", error);
-    });
-}
-
-
 //data processing
 function position_to_data_arr(positions){
     let position_ls = [];
@@ -198,10 +159,46 @@ function position_to_data_arr(positions){
     };
     return position_ls
 }
-
-function dragEvent(event){
-    console.log(event)
+function get_connection_list(connections){
+    
+    let connection_list = [];
+    for (let key in connections){
+        connections[key].forEach(output => {
+            connection_list.push({ source: key.toString(), target: output.toString() });
+        });
+    }
+    return connection_list
 }
+
+
+/*
+
+    SIM UPDATE FUNCTIONS
+
+*/
+
+function electrodeBuilder(electrodeChanges){
+    //apply changes from contextMenu to electrodes. NEEDS TO APPLY CHANGES TO NEURON
+    electrodes.forEach((electrode)=>{
+        if(electrodeChanges[electrode.name]){
+            //merge dicts
+
+            for(let key in electrodeChanges[electrode.name]){ 
+                electrode[key] = electrodeChanges[electrode.name][key];
+            }
+            let currentBuilder = {}
+            for(let i in electrode["connectedNeurons"]){
+                let neuronName = electrode["connectedNeurons"][i] 
+                //neuronIndex
+                currentBuilder[neuronName[1]] = electrodeChanges[electrode.name]
+                
+            }
+            //console.log(currentBuilder)
+            addCurrent(currentBuilder)
+        }
+    });
+}
+
 function removeElectrode(nodeName){
     let currentData = {currentType: "None"};
     //remove electrode with the name nodeName from electrodes and
@@ -228,6 +225,48 @@ function removeElectrode(nodeName){
     }
 
 }
+function getNeuronsInsideRect(pixelCenterCoords, width, height){
+    //could do the whole collision between circles and rectangles based on the tan line
+    //of the circle and the closest point on the rect but point neurons are easier.
+    //console.log(pixelCenterCoords)
+    
+    let electrodeBottom = pixelCenterCoords[1] + (height/2);
+    let electrodeLeft = pixelCenterCoords[0] - (width/2);
+
+    let electrodeTop = electrodeBottom - height;
+    let electrodeRight = electrodeLeft + width;
+
+    let seriesData = chart.getOption().series[1].data
+    let neuronsInElectrodes = []
+
+    for(let key in seriesData){
+
+        let datapoint = seriesData[key]
+        let dataName = datapoint.name
+
+        //only neurons
+        if(dataName[0] != "n"){
+            continue;
+        }
+
+        let pos = datapoint.value
+
+        let [pixelX, pixelY] = chart.convertToPixel({seriesIndex:0}, pos)
+        //console.log(pixelX, pixelY)
+        if (pixelX >= electrodeLeft && pixelX <= electrodeRight && 
+            pixelY >= electrodeTop && pixelY <= electrodeBottom) {
+            neuronsInElectrodes.push(dataName)
+           // console.log("neuronInElectrode")
+        }
+
+    }
+    return neuronsInElectrodes;
+}
+/*
+
+    GRAPHIC EVENT FUNCTIONS
+
+*/
 
 function nodeClicked(params){
     let nodeName = params["data"]["name"];
@@ -277,43 +316,6 @@ function nodeRightClick(event){
     customMenuElem.style.display = "flex";
 }
 
-function getNeuronsInsideRect(pixelCenterCoords, width, height){
-    //could do the whole collision between circles and rectangles based on the tan line
-    //of the circle and the closest point on the rect but point neurons are easier.
-    //console.log(pixelCenterCoords)
-    
-    let electrodeBottom = pixelCenterCoords[1] + (height/2);
-    let electrodeLeft = pixelCenterCoords[0] - (width/2);
-
-    let electrodeTop = electrodeBottom - height;
-    let electrodeRight = electrodeLeft + width;
-
-    let seriesData = chart.getOption().series[1].data
-    let neuronsInElectrodes = []
-
-    for(let key in seriesData){
-
-        let datapoint = seriesData[key]
-        let dataName = datapoint.name
-
-        //only neurons
-        if(dataName[0] != "n"){
-            continue;
-        }
-
-        let pos = datapoint.value
-
-        let [pixelX, pixelY] = chart.convertToPixel({seriesIndex:0}, pos)
-        //console.log(pixelX, pixelY)
-        if (pixelX >= electrodeLeft && pixelX <= electrodeRight && 
-            pixelY >= electrodeTop && pixelY <= electrodeBottom) {
-            neuronsInElectrodes.push(dataName)
-           // console.log("neuronInElectrode")
-        }
-
-    }
-    return neuronsInElectrodes;
-}
 
 function chartClicked(event){
     if(event.target){
@@ -351,18 +353,17 @@ function chartClicked(event){
         
     }
 }
-function get_connection_list(connections){
-    
-    let connection_list = [];
-    for (let key in connections){
-        connections[key].forEach(output => {
-            connection_list.push({ source: key.toString(), target: output.toString() });
-        });
-    }
-    return connection_list
-}
 
-function buildGraphs(simDict) {
+/*
+
+    GRAPHIC BUILDER FUNCTIONS
+
+*/
+
+
+export function buildGraphs(simDict) {
+    let btn = document.getElementById("pause_button");
+    btn.addEventListener('click',pauseRender)
 
     let chart_container = document.getElementById('chart_container')
 
@@ -434,43 +435,8 @@ function buildGraphs(simDict) {
         console.error("Echart instance failed to init")
     }
     updateGraph(simDict)
-
-}
-function addCurrent(currentDict){
-    
-    console.log("Adding current", currentDict)
-
-    fetch('/simulation/setCurrent', {
-        method:'POST',
-        headers:{
-            'Content-Type': 'application/json'
-        },
-        body:JSON.stringify(currentDict)
-    })
-    
 }
 
-function electrodeBuilder(electrodeChanges){
-    //apply changes from contextMenu to electrodes. NEEDS TO APPLY CHANGES TO NEURON
-    electrodes.forEach((electrode)=>{
-        if(electrodeChanges[electrode.name]){
-            //merge dicts
-
-            for(let key in electrodeChanges[electrode.name]){ 
-                electrode[key] = electrodeChanges[electrode.name][key];
-            }
-            let currentBuilder = {}
-            for(let i in electrode["connectedNeurons"]){
-                let neuronName = electrode["connectedNeurons"][i] 
-                //neuronIndex
-                currentBuilder[neuronName[1]] = electrodeChanges[electrode.name]
-                
-            }
-            //console.log(currentBuilder)
-            addCurrent(currentBuilder)
-        }
-    });
-}
 function buildSeries(simDict){
 
     let neurons = simDict["neurons"]
@@ -564,7 +530,7 @@ function buildSeries(simDict){
     return series;
 }
 
-function updateGraph(simData){
+export function updateGraph(simData){
 
     let newTime = Date.now();
 
@@ -583,8 +549,6 @@ function updateGraph(simData){
     //dynamic number of steps based on the passed step time
 
     let updateTimeToTimeDifferenceRatio = Math.trunc(updateTime / timeDifferencePerUpdate);
-    
-    console.log(numSteps)
 
     curTime = Date.now()
     chart.setOption({
@@ -593,6 +557,9 @@ function updateGraph(simData){
     });
     
     requestAnimationFrame(() => {
+        while(paused){
+            continue;
+        }
         let newTime = Date.now();
         iterateSim()
     });

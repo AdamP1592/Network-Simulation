@@ -30,13 +30,12 @@ function setTextInputMenus(left, top){
     menuTarget.style.display = "inline-block";
     
 }
-function hideTextInputMenus(){
-
-}
 function contextMenuButtonHover(event){
-    var neededData = {Sin:2, Square:2, Constant:1, None:0};
-    let btnElem = event.target;
 
+    //setup for switch
+    var neededData = {Sin:2, Square:2, Constant:1, None:0};
+    
+    let btnElem = event.target;
     menuButtonFocus = btnElem;
     
     let menuElem = document.getElementById("customContextMenuHolder");
@@ -66,6 +65,7 @@ function contextMenuButtonHover(event){
             
             break;
         default:
+            //hovering anything but the buttons that need text data clears it
             menuTarget = null;
             menuButtonFocus = null;
 
@@ -75,35 +75,46 @@ function contextMenuButtonHover(event){
             return;
             
     }
+    //if you dont get caught by the default catch case the text field is visible
     textFieldVisible = true;
 
-    let normalizedHeight = textMenuHeightMult * rect.height;
+    //since textField is placed within the whole menu, the top = 0 is just the top of the menu
+    //and left = 0 is the leftside of the menu, so shift it over the width of the menu
     setTextInputMenus(rect.width, (rect.top) - topMenu);
     
 }
 function keyReleased(event){
     var key = event.keyCode;
     if(key == 13){
+
+        //clears enterPressed
         console.log("released")
         enterPressed = false;
 
+        //if the text menu is visible, enter is the submit btn so hide the menu
         if(textFieldVisible){
             hideMenu()
         }
     }
 }
-export function setCurrent(changes){
+
+//function to set the new current in electrodeChanges to get passed to the main graph
+function setCurrent(changes){
     enterPressed = true;
     
     rightClickTarget = getTarget();
     electrodeChanges[rightClickTarget] = changes;
 }
+
 function keyPressed(event){
     var key = event.keyCode;
+
+    //when enter is pressed and the text field for the context menu is visible, set the current based on the params in the text menu
     if(key == 13 && textFieldVisible){
         setCurrent(getTextInputParams())
     }
 }
+//gets the text input from the context menu textfield
 function getTextInputParams(){
     var params = {}
     let inputSections = menuTarget.getElementsByClassName("textField");

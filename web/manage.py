@@ -31,8 +31,6 @@ def templates(filename):
     #for dynamically passing html templates via urlfor so they can get renderd with jinja as they are passed
     return render_template("graph.html")
 
-
-
     template = render_template("background.html")
 
     template_connection = "{" + "% include '{}.html' %".format(page_route_str) + "}"
