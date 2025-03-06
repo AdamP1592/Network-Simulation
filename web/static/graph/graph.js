@@ -486,6 +486,8 @@ function buildSeries(simDict){
     let neurons = simDict["neurons"]
     let synapses = simDict["synapses"]
 
+
+    let newTime = Date.now();
     let timeDifferencePerUpdate = newTime - curTime;
     let updateTime = 5000; // each update is 5 seconds in sim time
 
@@ -599,8 +601,8 @@ function updateFrame(){
     iterateSim()
 }
 export function updateGraph(simData){
-
-    let newTime = Date.now();
+    console.log(simData)
+    
 
     //split data into equal portions of numSteps
     //build a series with options for each step

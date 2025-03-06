@@ -8,7 +8,9 @@ class simulation():
     gaba_synapse_params = {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.3, 0.5], "u":[0.1], "e":[-75, -70], "g_max": [0.3, 1]}
     
     def __init__(self, num_neurons:int, dt:float):
+        self.__num_stored_values = int(100/dt)
         self.setup_sim(num_neurons, dt)
+        
 
     #setup helper functions
     def setup_vs(self):
@@ -51,9 +53,9 @@ class simulation():
         self.times = []
         self.synapse_gs = []
         self.largest_synapse_size = 0
-        
         self.vs = []
-        self.__num_stored_values = int(100/dt) # store 100 seconds of data at most
+        
+         # store 100 seconds of data at most
 
         self.sim_index = 0
         
@@ -63,6 +65,7 @@ class simulation():
         self.input_currents = []
 
         self.setup_models()
+        
     
     def iterate(self, num_steps = 1):
         for i in range(num_steps):

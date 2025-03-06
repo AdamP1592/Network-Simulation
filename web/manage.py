@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, redirect, jsonify
 
 import sys, os
 from cachetools import TTLCache
-
+num_iterations = 0
 #for importing driver
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -60,19 +60,21 @@ def get_graph_template():
 @app.route("/simulation/iterateSim", methods=['POST'])
 def iterate_sim():
     global sim
+    global num_iterations
     t = time.time()
     ##  get 5 seconds of sim data. Add that to the dict
-
     num_steps = int(5/sim.dt)
-    t = sim.t
     sim.iterate(num_steps)
-
-    vs = sim.vs[-num_steps:]
+    ## pull 5 seconds of vs from the simulation
+    vs = []
+    for neuron_vs in sim.vs:
+        vs.append(neuron_vs[(num_iterations * num_steps) % 100000: ((num_iterations * num_steps) % 100000) + num_steps])
 
     sim_dict = sim.generate_model_dict()
-
     sim_dict["vs"] = vs
-    print(time.time()  - t) 
+
+    num_iterations += 1
+
     return jsonify(sim_dict)
 
 @app.route("/simulation/setCurrent", methods=['POST'])
