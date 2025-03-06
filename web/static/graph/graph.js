@@ -60,74 +60,6 @@ export function pauseRender(){
     DATA HELPER FUNCTIONS
 
 */
-//processes neuron and synapse data into an object containing each datapoint
-function clean_data(neurons, synapses){
-    //combines all the neurons and synapses into one dictionary to used for storing positions
-    //and style for the display
-    let nodes = {}
-    for (let neuron_ind in neurons){
-        let neuron_name = "n" + String(neuron_ind)
-
-        let neuron = neurons[neuron_ind]
-        let neuron_params = neuron["neuron_params"]
-
-        let color = hsbColorRangeFinder(0, 70, neuron_params["vrest"] - 1, neuron_params["vthresh"], neuron_params["v"])
-        
-        let x = neuron_params["x"]
-        let y = neuron_params["y"]
-
-        nodes[neuron_name] = {position:[x, y], color:color }
-    }
-    for (let syn_ind in synapses){
-        let synapse_name = "s" + String(syn_ind)
-
-        let synapse = synapses[syn_ind]
-        let synapse_params = synapse["params"]
-
-        let color = "#61a0a8"
-        
-        let x = synapse_params["x"]
-        let y = synapse_params["y"]
-
-        nodes[synapse_name] = {position:[x, y], color:color }
-    }
-    return nodes
-}   
-
-function get_connections(synapses){
-
-    //generates a dict of connections, splitting out synapses as independent nodes
-    let connection_dict = {}
-    //console.log("Pulling Connections...")
-    for (let syn_key in synapses){
-
-        let syn = synapses[syn_key]
-        
-        let synapse_name = "s" + syn_key;
-
-        let con = syn["connections"]
-
-        let pre_syn = con["pre"]
-        let post_syn = con["post"]
-        
-        //iterate through all pre_syn neurons.
-        //Create connections for each neuron that points to this synapse
-        for (let neuron_ind in pre_syn){
-
-            let neuron_name = "n" + pre_syn[neuron_ind];
-            if(connection_dict[neuron_name] === undefined){
-                connection_dict[neuron_name] = [];
-            }
-            connection_dict[neuron_name].push(synapse_name)
-        }
-        //create connection for all the neurons this synapse points to
-
-        let post_syn_names = post_syn.map(element => "n" + element)
-        connection_dict[synapse_name] = post_syn_names
-
-    }
-    return connection_dict;
-}
 /**  
  * extracts params for main graph from a neuron or a synapse type
  * @param {object} object
@@ -498,10 +430,6 @@ function buildSeries(simDict){
     let minSeries = 5; // 1 update every second
     let maxSeries = 50; //5000 seconds means once every 250 ms
 
-    /*
-    let pos_dict = clean_data(neurons, synapses);
-    let con_dict = get_connections(synapses)
-    */
     let electrodeChanges = getElectrodeChanges()
     electrodeBuilder(electrodeChanges)
 

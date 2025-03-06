@@ -66,12 +66,13 @@ def iterate_sim():
     num_steps = int(5/sim.dt)
     sim.iterate(num_steps)
     ## pull 5 seconds of vs from the simulation
-    vs = []
-    for neuron_vs in sim.vs:
-        vs.append(neuron_vs[(num_iterations * num_steps) % 100000: ((num_iterations * num_steps) % 100000) + num_steps])
 
     sim_dict = sim.generate_model_dict()
-    sim_dict["vs"] = vs
+
+    #loads voltage data into the sim dict based on the number of steps
+    for i in range(len(sim.vs)):
+        sim_dict["neurons"][i]["vs"] = sim.vs[i][(num_iterations * num_steps) % 100000: ((num_iterations * num_steps) % 100000) + num_steps]
+
 
     num_iterations += 1
 
