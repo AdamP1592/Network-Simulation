@@ -14,7 +14,6 @@ export function iterateSim(){
 
 
     }).then(data => {
-        console.log("Recieved data:",  data)
         buildGraphs(data);
     }).catch((error)=>{
         console.error("Error:", error);

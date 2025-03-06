@@ -1,8 +1,11 @@
 
 import {hsbColorRangeFinder} from './color_functions.js'
+import {interpolate} from './color_functions.js'
+
 import {getElectrodeChanges} from './contextMenu.js'
 
 import {iterateSim} from './comms.js'
+
 import {setUpNetwork} from './comms.js'
 import {addCurrent} from './comms.js'
 
@@ -125,48 +128,89 @@ function get_connections(synapses){
     }
     return connection_dict;
 }
+/**  
+ * extracts params for main graph from a neuron or a synapse type
+ * @param {object} object
+ * @param {string} paramType
 
-//data processing
-function position_to_data_arr(positions){
+**/
+function dataBuilder(objs, paramType){
+    let paramTypes = {n:"neuron_params", s:"synapse_params"}
+    
     let position_ls = [];
     let symbols = {n:"circle", s:"rect"};
     let symbolSizes = {n:25, s:20};
-    for (let name in positions){
-        
-        let pos_container = positions[name];
-        let color = "#4287f5";
 
-        if(name[0] == 'n'){
-            color = rgbToCss(positions[name]["color"]);
+    for(let objIndex in objs){
+
+        //paramTypes[paramType] = 'neuron_params' or 'synapse_params
+        let params = objs[objIndex].params
+
+        //graph data
+        let nodeName = paramType + String(objIndex);
+        let x = params.x
+        let y = params.y
+        let cssColor = "#4287f5";
+        if(paramType === "n"){
+            let rgbColor = hsbColorRangeFinder(0, 70, params["vrest"] - 1, params["vthresh"], params["v"]);
+            cssColor = rgbToCss(rgbColor);
         }
+        
 
         let position_obj = 
         {
-            name:name.toString(),
-            value:[positions[name]["position"][0], positions[name]["position"][1]],
+            name:nodeName.toString(),
+            value:[x, y],
             inputCurrents:"none",
             //text
-            label: {formatter:name.toString(), color:"#000000"},
+            label: {formatter:nodeName.toString(), color:"#000000"},
 
             //symbol style
-            symbol: symbols[name[0]],
-            symbolSize:symbolSizes[name[0]],
+            symbol: symbols[paramType],
+            symbolSize: symbolSizes[paramType],
 
-            itemStyle:{color: color}
+            itemStyle:{color: cssColor}
 
         }
         position_ls.push(position_obj)
-    };
-    return position_ls
-}
-function get_connection_list(connections){
     
+    }
+    return position_ls
+
+
+}
+function position_to_data_arr(neurons, synapses){
+
+    let neuronData = dataBuilder(neurons, "n");
+    let synapseData = dataBuilder(synapses, "s");
+    
+    let nodeData = neuronData.concat(synapseData);
+    return nodeData
+    
+}
+function get_connection_list(synapses){
+
     let connection_list = [];
-    for (let key in connections){
-        connections[key].forEach(output => {
-            connection_list.push({ source: key.toString(), target: output.toString() });
+
+    for(let synapseIndex in synapses){
+        let cons = synapses[synapseIndex].connections
+
+        let preSynConnections = cons["pre"]
+        let postSynConnections = cons["post"]
+
+        let synapseName = "s" + String(synapseIndex);
+
+        preSynConnections.forEach(neuronIndex => {
+            let neuronName = "n" + String(neuronIndex);
+            connection_list.push({ source : neuronName, target:synapseName});
+        });
+        postSynConnections.forEach(neuronIndex => {
+            let neuronName = "n" + String(neuronIndex);
+            connection_list.push({ source : synapseName, target:neuronName});
+
         });
     }
+
     return connection_list
 }
 
@@ -441,15 +485,26 @@ function buildSeries(simDict){
 
     let neurons = simDict["neurons"]
     let synapses = simDict["synapses"]
-    
+
+    let timeDifferencePerUpdate = newTime - curTime;
+    let updateTime = 5000; // each update is 5 seconds in sim time
+
+    //dynamic number of steps based on the passed step time
+
+    let updateTimeToTimeDifferenceRatio = Math.trunc(updateTime / timeDifferencePerUpdate);
+
+    let minSeries = 5; // 1 update every second
+    let maxSeries = 50; //5000 seconds means once every 250 ms
+
+    /*
     let pos_dict = clean_data(neurons, synapses);
     let con_dict = get_connections(synapses)
-
+    */
     let electrodeChanges = getElectrodeChanges()
     electrodeBuilder(electrodeChanges)
 
-    let cons = get_connection_list(con_dict);
-    let pos_ls = position_to_data_arr(pos_dict);
+    let cons = get_connection_list(synapses);
+    let pos_ls = position_to_data_arr(neurons, synapses);
 
     
     //why the do I have to do this, concat refused to work.
@@ -524,12 +579,25 @@ function buildSeries(simDict){
             },
 
         },
+
+        //will be the historic membrane potential graph of the "focused" neuro
         { name: "Membrane Potential", type: "line", data: [2, 4, 3], xAxisIndex: 1, yAxisIndex: 1 }, // Right top chart
-        { name: "Synapse Dynamics", type: "bar", data: [5, 2, 6], xAxisIndex: 2, yAxisIndex: 2 }  // Right bottom chart
+        //will be the historic input stimuli dynamics(synaptic and electrodes)
+        { name: "Input Dynamics", type: "bar", data: [5, 2, 6], xAxisIndex: 2, yAxisIndex: 2 }  // Right bottom chart
     ]
     return series;
 }
 
+function updateFrame(){
+    if(paused){
+        setTimeout(() => {
+            requestAnimationFrame(updateFrame);
+        }, 1000 / 30); //30 fps max
+        return;
+    }
+    let newTime = Date.now();
+    iterateSim()
+}
 export function updateGraph(simData){
 
     let newTime = Date.now();
@@ -543,24 +611,11 @@ export function updateGraph(simData){
 
     let series = buildSeries(simData);    
     
-    let timeDifferencePerUpdate = newTime - curTime;
-    let updateTime = 5000; // each update is 5 seconds in sim time
-
-    //dynamic number of steps based on the passed step time
-
-    let updateTimeToTimeDifferenceRatio = Math.trunc(updateTime / timeDifferencePerUpdate);
-
     curTime = Date.now()
     chart.setOption({
         series:series,
         animation: false
     });
     
-    requestAnimationFrame(() => {
-        while(paused){
-            continue;
-        }
-        let newTime = Date.now();
-        iterateSim()
-    });
+    requestAnimationFrame(updateFrame);
 }

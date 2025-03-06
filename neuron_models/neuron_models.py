@@ -211,7 +211,7 @@ class hodgkin_huxley(neuron):
             gating_params[f"{i}_beta"] = current_gate.beta
 
 
-        params['neuron_params'] = neural_params
+        params['params'] = neural_params
         params['gating_params'] = gating_params
 
         return params
