@@ -64,17 +64,23 @@ def iterate_sim():
     t = time.time()
     ##  get 5 seconds of sim data. Add that to the dict
     num_steps = int(5/sim.dt)
-    sim.iterate(num_steps)
+    graphing_params = sim.iterate(num_steps)
+
+    vs = graphing_params["vs"]
+    input_currents = graphing_params["input_currents"]
+    synaptic_inputs = graphing_params["synaptic_inputs"]
+
     ## pull 5 seconds of vs from the simulation
 
     sim_dict = sim.generate_model_dict()
-
     #loads voltage data into the sim dict based on the number of steps
-    for i in range(len(sim.vs)):
-        sim_dict["neurons"][i]["vs"] = sim.vs[i][(num_iterations * num_steps) % 100000: ((num_iterations * num_steps) % 100000) + num_steps]
+    for i in range(sim.num_neurons):
+        sim_dict["neurons"][i]["vs"] = vs[i]
+        sim_dict["neurons"][i]["input_currents"] = input_currents[i]
+        sim_dict["neurons"][i]["synaptic_inputs"] = synaptic_inputs[i]
 
 
-    num_iterations += 1
+    #num_iterations += 1
 
     return jsonify(sim_dict)
 

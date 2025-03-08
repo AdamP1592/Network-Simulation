@@ -68,15 +68,24 @@ class simulation():
         
     
     def iterate(self, num_steps = 1):
+        vs = [[]] * self.num_neurons
+        input_currents = [[]] * self.num_neurons
+        synaptic_inputs = [[]] * self.num_neurons
+
+
         for i in range(num_steps):
             for j in range(len(self.neuron_models)):
                 self.neuron_models[j].update()
             
                 self.input_currents[j][int(self.sim_index % self.__num_stored_values)] = self.neuron_models[j].input_current
-                
-                #vs[j] = vs for a specific neuron, [simIndex % vs per neuron ]
-                self.vs[j][int(self.sim_index % self.__num_stored_values)] = self.neuron_models[j].v
+                vs[j].append([self.t, self.neuron_models[j].v])
+                input_currents[j].append([self.t, self.neuron_models[j].input_current])
 
+                synaptic_inputs[j].append([self.t, self.neuron_models[j].i_syn])
+
+                #vs[j] = vs for a specific neuron, [simIndex % vs per neuron ]
+                #self.vs[j][int(self.sim_index % self.__num_stored_values)] = self.neuron_models[j].v
+                
 
             for j in range(len(self.synapses)):
                 self.synapses[j].update()
@@ -86,6 +95,7 @@ class simulation():
             self.times.append(self.dt + self.t)
             self.t+=self.dt
             self.sim_index += 1
+        return {"vs":vs, "input_currents": input_currents, "synaptic_inputs": synaptic_inputs}
 
 
     def create_synapse(self, pre_synaptic_neuron_indexes:list, post_synaptic_neuron_indexes:list, synapse_params = {}):

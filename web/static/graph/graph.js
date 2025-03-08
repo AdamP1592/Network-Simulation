@@ -67,7 +67,6 @@ export function pauseRender(){
 
 **/
 function dataBuilder(objs, paramType){
-    let paramTypes = {n:"neuron_params", s:"synapse_params"}
     
     let position_ls = [];
     let symbols = {n:"circle", s:"rect"};
@@ -357,8 +356,8 @@ export function buildGraphs(simDict) {
     var option = {
         title: [
             { text: "Network Activity", left: "5%", top: "5%" }, // Left chart title
-            { text: "Neuron Dynamics", left: "60%", top: "5%" }, // Right top title
-            { text: "Input Current", left: "60%", top: "50%" } // Right bottom title
+            { text: "Membrane Potential", left: "60%", top: "5%" }, // Right top title
+            { text: "Input stimuli", left: "60%", top: "50%" } // Right bottom title
         ],
 
         // Define multiple grids (areas for sub-charts)
@@ -371,8 +370,8 @@ export function buildGraphs(simDict) {
         // Define X-Axes (One for each chart)
         xAxis: [
             { type: "value", gridIndex: 0}, //Left chart
-            { type: "category", gridIndex: 1, data: ["T1", "T2", "T3"] }, // Right top chart
-            { type: "category", gridIndex: 2, data: ["T1", "T2", "T3"] }  // Right bottom chart
+            { type: "value", gridIndex: 1, scale: true}, // Right top chart
+            { type: "value", gridIndex: 2, scale: true}  // Right bottom chart
         ],
 
         // Define Y-Axes (One for each chart)
@@ -418,10 +417,10 @@ function buildSeries(simDict){
     let neurons = simDict["neurons"]
     let synapses = simDict["synapses"]
 
-
     let newTime = Date.now();
     let timeDifferencePerUpdate = newTime - curTime;
     let updateTime = 5000; // each update is 5 seconds in sim time
+
 
     //dynamic number of steps based on the passed step time
 
@@ -476,7 +475,7 @@ function buildSeries(simDict){
 
             roam: "enabled", 
             //meta
-            name: "Neuron Activity", 
+            name: "Electrodes", 
             type: "graph", 
 
             //positon
@@ -511,9 +510,26 @@ function buildSeries(simDict){
         },
 
         //will be the historic membrane potential graph of the "focused" neuro
-        { name: "Membrane Potential", type: "line", data: [2, 4, 3], xAxisIndex: 1, yAxisIndex: 1 }, // Right top chart
+        { // Right top chart
+            name: "Membrane Potential",
+            type: "line", data:neurons[0].vs,
+            xAxisIndex: 1,
+            yAxisIndex: 1 
+        
+        }, 
         //will be the historic input stimuli dynamics(synaptic and electrodes)
-        { name: "Input Dynamics", type: "bar", data: [5, 2, 6], xAxisIndex: 2, yAxisIndex: 2 }  // Right bottom chart
+        { // Right bottom chart
+            name: "Synaptic Dynamics", 
+            type: "line", data: neurons[0].synaptic_inputs, 
+            xAxisIndex: 2, 
+            yAxisIndex: 2 
+        },
+        { // Right bottom chart
+            name: "Input Currents", 
+            type: "line", data: neurons[0].input_currents, 
+            xAxisIndex: 2, 
+            yAxisIndex: 2 
+        }  
     ]
     return series;
 }
@@ -529,8 +545,7 @@ function updateFrame(){
     iterateSim()
 }
 export function updateGraph(simData){
-    console.log(simData)
-    
+
 
     //split data into equal portions of numSteps
     //build a series with options for each step

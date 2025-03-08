@@ -152,6 +152,7 @@ class hodgkin_huxley(neuron):
 
         self.resting_potential = params['vrest']
         self.action_potential_threshold = params['vthresh']
+        self.input_current = 0
 
         
         try:
