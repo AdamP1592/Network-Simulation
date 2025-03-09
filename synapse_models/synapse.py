@@ -123,7 +123,8 @@ class tsodyks_markram_synapse():
             neuron = self.pre_synaptic_neurons[i]
             #when the neuron is registered as having a spike and has returned to resting
             #the neuron will undergo a refractory period 
-            if self.is_active[i] == True and neuron.v <= neuron.resting_potential:
+
+            if self.is_active[i] == True and neuron.v <= neuron.action_potential_threshold:
                 self.is_active[i] = False
             #when the neuron is registered as inactive and has achieved
             #a spike set the new past spike time to the current time and

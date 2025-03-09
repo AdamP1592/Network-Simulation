@@ -13,10 +13,10 @@ import {addCurrent} from './comms.js'
 
 document.addEventListener("DOMContentLoaded",setUpNetwork);
 var chart;
-//setup for 0: [1, 4, 5], 1: [5, 2], 2:[ 3, 5], 3: [4, 5]
-const connections = {n0:["s0"], n2:["s1"], s0:["n2", "n1"],  s1:["n4", "n3", "n5"]}
 
 var rightClickTarget = null;
+
+var neuronTarget = 0;
 
 var rightClickX;
 var rightClickY;
@@ -69,6 +69,8 @@ export function pauseRender(){
 function dataBuilder(objs, paramType){
     
     let position_ls = [];
+    let target =  `n${neuronTarget}`
+
     let symbols = {n:"circle", s:"rect"};
     let symbolSizes = {n:25, s:20};
 
@@ -100,7 +102,11 @@ function dataBuilder(objs, paramType){
             symbol: symbols[paramType],
             symbolSize: symbolSizes[paramType],
 
-            itemStyle:{color: cssColor}
+            itemStyle:{
+                color: cssColor,
+                borderColor:"#000000",
+                borderWidth: 1.5 * Number(nodeName == target)
+            }
 
         }
         position_ls.push(position_obj)
@@ -242,13 +248,18 @@ function getNeuronsInsideRect(pixelCenterCoords, width, height){
     GRAPHIC EVENT FUNCTIONS
 
 */
-
+function focusNeuron(nodeName){
+    
+    neuronTarget = parseInt(nodeName.substring(1))
+    console.log(neuronTarget)
+}
 function nodeClicked(params){
     let nodeName = params["data"]["name"];
 
     //if event is a part of the first component(main graph)
-    if(params["componentIndex"] == 0){
 
+    console.log(params)
+    if(params["seriesIndex"] < 2){
         switch(nodeName[0]){
             //if electrode is clicked
             case "e":
@@ -414,8 +425,11 @@ export function buildGraphs(simDict) {
 
 function buildSeries(simDict){
 
+    
     let neurons = simDict["neurons"]
     let synapses = simDict["synapses"]
+
+    console.log(neurons)
 
     let newTime = Date.now();
     let timeDifferencePerUpdate = newTime - curTime;
@@ -512,7 +526,7 @@ function buildSeries(simDict){
         //will be the historic membrane potential graph of the "focused" neuro
         { // Right top chart
             name: "Membrane Potential",
-            type: "line", data:neurons[0].vs,
+            type: "line", data:neurons[neuronTarget].vs,
             xAxisIndex: 1,
             yAxisIndex: 1 
         
@@ -520,13 +534,15 @@ function buildSeries(simDict){
         //will be the historic input stimuli dynamics(synaptic and electrodes)
         { // Right bottom chart
             name: "Synaptic Dynamics", 
-            type: "line", data: neurons[0].synaptic_inputs, 
+            type: "line", data: neurons[neuronTarget].synaptic_inputs, 
+
+            lineStyle: {color: '#d5ceeb'},
             xAxisIndex: 2, 
             yAxisIndex: 2 
         },
         { // Right bottom chart
             name: "Input Currents", 
-            type: "line", data: neurons[0].input_currents, 
+            type: "line", data: neurons[neuronTarget].input_currents, 
             xAxisIndex: 2, 
             yAxisIndex: 2 
         }  

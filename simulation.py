@@ -4,7 +4,7 @@ class simulation():
 
     #{"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
     # "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
-    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.7, 0.1], "u":[0.1], "e": [0, 0], "g_max": [0.3, 1]}
+    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.8], "u_max": [0.8, 0.1], "u":[0.1], "e": [0, 0], "g_max": [0.3, 1]}
     gaba_synapse_params = {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.3, 0.5], "u":[0.1], "e":[-75, -70], "g_max": [0.3, 1]}
     
     def __init__(self, num_neurons:int, dt:float):
@@ -65,24 +65,64 @@ class simulation():
         self.input_currents = []
 
         self.setup_models()
-        
-    
-    def iterate(self, num_steps = 1):
-        vs = [[]] * self.num_neurons
-        input_currents = [[]] * self.num_neurons
-        synaptic_inputs = [[]] * self.num_neurons
 
+    """
+    def iterate(self, num_steps = 1):
+        sample_t = 0.1
+        print(self.dt)
+        num_steps_per_sample = sample_t/self.dt
+
+        num_samples = int(num_steps/num_steps_per_sample)
+
+        print(num_samples)
+
+        vs = [[0] * num_samples] * self.num_neurons
+        input_currents = [[0] * num_samples] * self.num_neurons
+        synaptic_inputs = [[0] * num_samples] * self.num_neurons
+
+        sample_index = 0
+        for i in range(num_steps):
+            for j in range(len(self.neuron_models)):
+
+                if( i % num_steps_per_sample == 0):
+
+                    vs[j][sample_index] = [self.t, self.neuron_models[j].v]
+                    input_currents[j][sample_index] = [self.t, self.neuron_models[j].input_current]
+
+                    synaptic_inputs[j][sample_index] = [self.t, self.neuron_models[j].i_syn]
+
+                    sample_index += (j == self.num_neurons - 1)
+
+                self.neuron_models[j].update()
+
+
+    """    
+    
+
+
+
+
+    def iterate(self, num_steps = 1):
+        sample_t = 0.1
+        num_steps_per_sample = sample_t/self.dt
+
+        vs = [[] for j in range(self.num_neurons)]
+        input_currents = [[] for j in range(self.num_neurons)]
+        synaptic_inputs = [[] for j in range(self.num_neurons)]
 
         for i in range(num_steps):
             for j in range(len(self.neuron_models)):
+
+                if( i % num_steps_per_sample == 0):
+                    vs[j].append([self.t, self.neuron_models[j].v])
+                    input_currents[j].append([self.t, self.neuron_models[j].input_current])
+
+                    synaptic_inputs[j].append([self.t, self.neuron_models[j].i_syn])
+
                 self.neuron_models[j].update()
             
-                self.input_currents[j][int(self.sim_index % self.__num_stored_values)] = self.neuron_models[j].input_current
-                vs[j].append([self.t, self.neuron_models[j].v])
-                input_currents[j].append([self.t, self.neuron_models[j].input_current])
-
-                synaptic_inputs[j].append([self.t, self.neuron_models[j].i_syn])
-
+                #self.input_currents[j][int(self.sim_index % self.__num_stored_values)] = self.neuron_models[j].input_current
+                
                 #vs[j] = vs for a specific neuron, [simIndex % vs per neuron ]
                 #self.vs[j][int(self.sim_index % self.__num_stored_values)] = self.neuron_models[j].v
                 
@@ -95,6 +135,7 @@ class simulation():
             self.times.append(self.dt + self.t)
             self.t+=self.dt
             self.sim_index += 1
+
         return {"vs":vs, "input_currents": input_currents, "synaptic_inputs": synaptic_inputs}
 
 

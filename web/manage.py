@@ -74,6 +74,7 @@ def iterate_sim():
 
     sim_dict = sim.generate_model_dict()
     #loads voltage data into the sim dict based on the number of steps
+
     for i in range(sim.num_neurons):
         sim_dict["neurons"][i]["vs"] = vs[i]
         sim_dict["neurons"][i]["input_currents"] = input_currents[i]
