@@ -62,15 +62,14 @@ def iterate_sim():
     global sim
     global num_iterations
     t = time.time()
-    ##  get 5 seconds of sim data. Add that to the dict
-    num_steps = int(5/sim.dt)
+    ##  get 1 second of sim data. Add that to the dict
+    num_steps = int(1/sim.dt)
     graphing_params = sim.iterate(num_steps)
 
     vs = graphing_params["vs"]
     input_currents = graphing_params["input_currents"]
     synaptic_inputs = graphing_params["synaptic_inputs"]
 
-    ## pull 5 seconds of vs from the simulation
 
     sim_dict = sim.generate_model_dict()
     #loads voltage data into the sim dict based on the number of steps

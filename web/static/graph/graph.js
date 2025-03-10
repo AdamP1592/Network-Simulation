@@ -13,6 +13,7 @@ import {addCurrent} from './comms.js'
 
 document.addEventListener("DOMContentLoaded",setUpNetwork);
 var chart;
+var lastDict;
 
 var rightClickTarget = null;
 
