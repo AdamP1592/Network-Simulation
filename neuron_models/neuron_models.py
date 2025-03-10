@@ -63,6 +63,8 @@ class hodgkin_huxley(neuron):
         self.set_params(params)
         self.update_gates(self.v)
         self.gating_varibles_setup()
+    """
+    squid axon gating functions
 
     def alpha_n(self, v):
         return 0.01 * ((10 - v) / (math.exp((10 - v) / 10) - 1))
@@ -81,6 +83,29 @@ class hodgkin_huxley(neuron):
 
     def beta_h(self, v):
         return 1.0/(1.0 + (math.exp((30.0 - v) / 10.0)))
+
+    """
+
+    def alpha_m(self, v):
+        return 0.1 * (v + 40) / (1 - math.exp(-(v + 40) / 10))
+
+    def beta_m(self, v):
+        return 4.0 * math.exp(-(v + 65) / 18)
+
+
+    def alpha_h(self, v):
+        return 0.07 * math.exp(-(v + 65) / 20)
+
+    def beta_h(self, v):
+        return 1 / (1 + math.exp(-(v + 35) / 10))
+    
+    #sodium gating
+    def alpha_n(self, v):
+        return 0.01 * (v + 55) / (1 - math.exp(-(v + 55) / 10))
+
+    def beta_n(self, v):
+        return 0.125 * math.exp(-(v + 65) / 80)
+
     
     def gating_varibles_setup(self):
         self.n_gate.set_infinite_state()
@@ -152,6 +177,7 @@ class hodgkin_huxley(neuron):
 
         self.resting_potential = params['vrest']
         self.action_potential_threshold = params['vthresh']
+        self.input_current = 0
 
         
         try:
@@ -211,7 +237,7 @@ class hodgkin_huxley(neuron):
             gating_params[f"{i}_beta"] = current_gate.beta
 
 
-        params['neuron_params'] = neural_params
+        params['params'] = neural_params
         params['gating_params'] = gating_params
 
         return params

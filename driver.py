@@ -85,7 +85,16 @@ if __name__ == '__main__':
     #neuron_sim = create_sim(5, 5, 5)
 
 
-    sim = create_sim(5, 5, 5)
+    sim = create_sim(1, 0, 0 )
+    print("Sim Created")
+    sim.neuron_models[0].set_sin_current(0.5, 50)
+    params = sim.iterate(100)
+
+    
+    vs = params["vs"]
+    [print(i) for i in vs]
+
+
     #sim.setup_old_instance_from_dict(sim_dict)
     """
     dt = 0.001

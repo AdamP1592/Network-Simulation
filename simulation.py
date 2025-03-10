@@ -1,41 +1,45 @@
 class simulation():
-    default_neural_params = {'c': 1, "gk": 36.004631953926285, "gna": 119.91561331101256, "gleak": 0.2997385592373893, "ek": -82.03623253390188, "ena": 45.028284147345595, "eleak": -59.35717906013866, "c": 0.9998470285990088, "vrest": -59.35717564093531, "vthresh": 15.119047441363206}
+    #default_neural_params = {'c': 1,
+    #                        "gk": 36.004631953926285,
+    #                        "gna": 119.91561331101256,
+    #                        "gleak": 0.2997385592373893,
+    #                        "ek": -82.03623253390188,
+    #                        "ena": 45.028284147345595, 
+    #                        "eleak": -59.35717906013866,
+    #                        "vrest": -59.35717564093531, 
+    #                        "vthresh": 15.119047441363206}
     #holders for neuron data
+    default_neural_params = {
+        "c": 1.0,  # membrane capacitance, in uF/cm^2
+        "gna": 120.0,   # maximum conducances, in mS/cm^2
+        "gk": 36.0,
+        'gleak': 0.3,
+        "ena": 50.0,    # reversal potentials, in mV
+        "ek": -77.0,
+        "eleak": -54.387,
+        "vrest":-65,
+        "vthresh": -55
 
+    }
     #{"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
     # "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
-    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.7, 0.1], "u":[0.1], "e": [0, 0], "g_max": [0.3, 1]}
+    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.8], "u_max": [0.8, 0.1], "u":[0.1], "e": [0, 0], "g_max": [0.3, 1]}
     gaba_synapse_params = {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.3, 0.5], "u":[0.1], "e":[-75, -70], "g_max": [0.3, 1]}
     
     def __init__(self, num_neurons:int, dt:float):
+        self.__num_stored_values = int(100/dt)
         self.setup_sim(num_neurons, dt)
-
-
-    def setup_sim(self, num_neurons, dt):
-        self.num_neurons = num_neurons
-
-        self.neuron_models, self.synapses, self.input_currents, self.membrane_potentials = [], [], [], []
-        self.t = 0
-
-        self.inputs = []
-        self.times = []
-        self.synapse_gs = []
-        self.largest_synapse_size = 0
         
-        self.vs = [[] for i in range(num_neurons)]
-        self.dt = dt
 
-        self.input_current_functions = []
-        self.input_currents = []
-
-        self.setup_models()
-
-
-        #create each synapse
-
+    #setup helper functions
+    def setup_vs(self):
+        self.vs.append([0] * self.__num_stored_values)
+    def setup_input_currents(self):
+        self.input_currents.append([0] * self.__num_stored_values)
 
     def interpolate(self, variable, min_val, max_val):
         return (variable * (max_val-min_val)) + min_val
+    
     def __generate_activity_params(self, type:str, activation_modifier=1.0):
         synapse_param_ranges = self.ampa_synapse_params
         synapse_params = {}
@@ -49,6 +53,104 @@ class simulation():
             param_range = synapse_param_ranges[param_name]
             
             synapse_params[param_name] = self.interpolate(activation_modifier, param_range[0], param_range[1])
+
+
+    """
+    
+        SIM BUILDER FUNCTIONS
+
+    """
+    
+
+    def setup_sim(self, num_neurons, dt):
+        self.num_neurons = num_neurons
+
+        self.neuron_models, self.synapses, self.input_currents, self.membrane_potentials = [], [], [], []
+        self.t = 0
+
+        self.inputs = []
+        self.times = []
+        self.synapse_gs = []
+        self.largest_synapse_size = 0
+        self.vs = []
+        
+         # store 100 seconds of data at most
+
+        self.sim_index = 0
+        
+        self.dt = dt
+
+        self.input_current_functions = []
+        self.input_currents = []
+
+        self.setup_models()
+
+    """
+    def iterate(self, num_steps = 1):
+        sample_t = 0.1
+        print(self.dt)
+        num_steps_per_sample = sample_t/self.dt
+
+        num_samples = int(num_steps/num_steps_per_sample)
+
+        print(num_samples)
+
+        vs = [[0] * num_samples] * self.num_neurons
+        input_currents = [[0] * num_samples] * self.num_neurons
+        synaptic_inputs = [[0] * num_samples] * self.num_neurons
+
+        sample_index = 0
+        for i in range(num_steps):
+            for j in range(len(self.neuron_models)):
+
+                if( i % num_steps_per_sample == 0):
+
+                    vs[j][sample_index] = [self.t, self.neuron_models[j].v]
+                    input_currents[j][sample_index] = [self.t, self.neuron_models[j].input_current]
+
+                    synaptic_inputs[j][sample_index] = [self.t, self.neuron_models[j].i_syn]
+
+                    sample_index += (j == self.num_neurons - 1)
+
+                self.neuron_models[j].update()
+
+
+    """    
+    
+
+
+
+
+    def iterate(self, num_steps = 1):
+        sample_t = 0.1
+        num_steps_per_sample = sample_t/self.dt
+
+        vs = [[] for j in range(self.num_neurons)]
+        input_currents = [[] for j in range(self.num_neurons)]
+        synaptic_inputs = [[] for j in range(self.num_neurons)]
+
+        for i in range(num_steps):
+            for j in range(len(self.neuron_models)):
+
+                if( i % num_steps_per_sample == 0):
+                    vs[j].append([self.t, self.neuron_models[j].v])
+                    input_currents[j].append([self.t, self.neuron_models[j].input_current])
+
+                    synaptic_inputs[j].append([self.t, self.neuron_models[j].i_syn])
+
+                self.neuron_models[j].update()
+            
+
+            for j in range(len(self.synapses)):
+                self.synapses[j].update()
+                self.synapse_gs[j].append(self.synapses[j].g_syn)
+
+            
+            self.times.append(self.dt + self.t)
+            self.t+=self.dt
+            self.sim_index += 1
+
+        return {"vs":vs, "input_currents": input_currents, "synaptic_inputs": synaptic_inputs}
 
 
     def create_synapse(self, pre_synaptic_neuron_indexes:list, post_synaptic_neuron_indexes:list, synapse_params = {}):
@@ -78,7 +180,18 @@ class simulation():
         model.set_no_current()
 
         self.neuron_models.append(model)
-        self.input_currents.append([])
+        
+        self.setup_vs()
+        self.setup_input_currents()
+        
+
+
+    """
+    
+        RESTORE SIMULATION FUNCTIONS
+    
+    """
+
 
     def setup_models(self, params=[]):
         import warnings
@@ -93,24 +206,8 @@ class simulation():
             curr_params_dict = params[i % len(params)]
 
             self.create_neuron(curr_params_dict)
-        
 
-    def iterate(self, num_steps = 1):
-        for i in range(num_steps):
-            for j in range(len(self.neuron_models)):
-                self.neuron_models[j].update()
-            
-                self.input_currents[j].append(self.neuron_models[j].input_current)
-                
-                self.vs[j].append(self.neuron_models[j].v)
-
-            for j in range(len(self.synapses)):
-                self.synapses[j].update()
-                self.synapse_gs[j].append(self.synapses[j].g_syn)
-
-            
-            self.times.append(self.dt + self.t)
-            self.t+=self.dt
+    
 
     def clear(self, num_steps):
         #clear each neuron of any current for a fixed num steps
@@ -120,7 +217,6 @@ class simulation():
             i.set_no_current()
             self.iterate(num_steps)
             i.input_current_func = past_current_func
-
 
     def __setup_old_neuron(self, states, params, position, input_current_func, t, dt):
                  
@@ -156,27 +252,9 @@ class simulation():
         neuron.x, neuron.y = x, y
 
         self.neuron_models.append(neuron)
-        self.vs.append([])
+        self.setup_vs()
+        self.setup_input_currents()
 
-    def generate_model_dict(self):
-        neurons = {}
-        synapses = {}
-        network = {}
-        for i in range(len(self.neuron_models)):
-            neuron_params = self.neuron_models[i].get_params()
-            neurons[i] = neuron_params
-        
-        for i in range(len(self.synapses)):
-            synapses[i] = self.synapses[i].get_params()
-
-        network = {"t": self.t, "dt":self.dt, "num_neurons": self.num_neurons}
-
-        return {"neurons": neurons, "synapses":synapses, "network": network}
-    
-    def store_model(self):
-        import json
-        with open("network.json", "w") as f:
-            f.write(self.generate_model_dict())
 
     def __setup_old_neuron_from_dict(self, neuron_params, neuron_gate_params, t, dt):
         from neuron_models.neuron_models import hodgkin_huxley
@@ -207,21 +285,11 @@ class simulation():
         self.input_currents.append([])
 
         self.neuron_models.append(neuron)
-        self.vs.append([])
+        self.setup_vs()
+        self.setup_input_currents()
 
-    def synaptic_connection_dict_builder(self, pre_synaptic_indicies, post_synaptic_indicies):
-        pre_synaptic_neurons = {}
-        post_synaptic_neurons = {}
 
-        for i in pre_synaptic_indicies:
-            pre_synaptic_neurons[i] = self.neuron_models[i]
-    
-        for i in post_synaptic_indicies:
-            post_synaptic_neurons[i] = self.neuron_models[i]
-
-        return [pre_synaptic_neurons, post_synaptic_neurons]
     def setup_old_instance_from_dict(self, model_dict):
-
         neural_params = model_dict["neurons"]
         synapse_params = model_dict["synapses"]
         network_params = model_dict["network"]
@@ -269,13 +337,46 @@ class simulation():
             self.create_synapse(pre_cons, post_cons, syn_params)
 
             self.synapses[-1].set_state(syn_state)
-            
-    def __str__(self):
-        sim_str = ""
 
-        for i in self.neuron_models:
-            sim_str += str(i) + "\n\n"
-        for i in self.synapses:
-            sim_str += str(i) + "\n\n"
+
+
+    """
+        OUTPUT FUNCTIONS
+
+    """
+    def generate_model_dict(self):
+        neurons = {}
+        synapses = {}
+        network = {}
+        for i in range(len(self.neuron_models)):
+            neuron_params = self.neuron_models[i].get_params()
+            neurons[i] = neuron_params
+        
+        for i in range(len(self.synapses)):
+            synapses[i] = self.synapses[i].get_params()
+
+        network = {"t": self.t, "dt":self.dt, "num_neurons": self.num_neurons}
+
+        return {"neurons": neurons, "synapses":synapses, "network": network}
+    
+    def store_model(self):
+        import json
+        with open("network.json", "w") as f:
+            f.write(self.generate_model_dict())
+
+    def synaptic_connection_dict_builder(self, pre_synaptic_indicies, post_synaptic_indicies):
+        pre_synaptic_neurons = {}
+        post_synaptic_neurons = {}
+
+        for i in pre_synaptic_indicies:
+            pre_synaptic_neurons[i] = self.neuron_models[i]
+
+        for i in post_synaptic_indicies:
+            post_synaptic_neurons[i] = self.neuron_models[i]
+
+        return [pre_synaptic_neurons, post_synaptic_neurons]
+    
+    def __str__(self):
+        sim_str = str(self.generate_model_dict())
         
         return sim_str

@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, redirect, jsonify
 
 import sys, os
 from cachetools import TTLCache
-
+num_iterations = 0
 #for importing driver
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
@@ -31,8 +31,6 @@ def templates(filename):
     #for dynamically passing html templates via urlfor so they can get renderd with jinja as they are passed
     return render_template("graph.html")
 
-
-
     template = render_template("background.html")
 
     template_connection = "{" + "% include '{}.html' %".format(page_route_str) + "}"
@@ -42,7 +40,7 @@ def templates(filename):
     template = template.replace("%%", template_connection)
 """
 
-
+import time
 def build_page(page_route_str):
 
     return render_template("background.html")
@@ -62,18 +60,27 @@ def get_graph_template():
 @app.route("/simulation/iterateSim", methods=['POST'])
 def iterate_sim():
     global sim
+    global num_iterations
+    t = time.time()
+    ##  get 1 second of sim data. Add that to the dict
+    num_steps = int(1/sim.dt)
+    graphing_params = sim.iterate(num_steps)
 
-    ##  get 5 seconds of sim data. Add that to the dict
+    vs = graphing_params["vs"]
+    input_currents = graphing_params["input_currents"]
+    synaptic_inputs = graphing_params["synaptic_inputs"]
 
-    num_steps = int(5/sim.dt)
-    t = sim.t
-    sim.iterate(num_steps)
-
-    vs = sim.vs[-num_steps:]
 
     sim_dict = sim.generate_model_dict()
+    #loads voltage data into the sim dict based on the number of steps
 
-    sim_dict["vs"] = vs
+    for i in range(sim.num_neurons):
+        sim_dict["neurons"][i]["vs"] = vs[i]
+        sim_dict["neurons"][i]["input_currents"] = input_currents[i]
+        sim_dict["neurons"][i]["synaptic_inputs"] = synaptic_inputs[i]
+
+
+    #num_iterations += 1
 
     return jsonify(sim_dict)
 
@@ -128,13 +135,12 @@ def home():
 @app.route("/about")
 def about():
     return render_template("background.html", page_name=f"about.html")
-
-
-
 #Async js requests
 
 @app.route("/simulation/sim_data", methods=["GET"])
 def sim_data():
+
+
     js_file = ""
     print("./web/templates/dynamic/simulation_data.js")
     with open("/web/templates/home.html") as f:

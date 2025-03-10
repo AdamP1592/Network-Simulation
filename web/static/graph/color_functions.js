@@ -50,21 +50,20 @@ function hsvToRgb(h, s, v){
 
 //for neurons min = 0, max = 70,
 
-function hueInterpolator(minH, maxH, minValue, maxValue, value){
+export function interpolate(minOut, maxOut, minValue, maxValue, value){
      // linear interpolation
-    let h = minH + (((value - minValue) * (maxH - minH))/(maxValue - minValue));
-    return h;
+    let out = minOut + (((value - minValue) * (maxOut - minOut))/(maxValue - minValue));
+    return out;
 }
 
 //returns rgb
 //
 export function hsbColorRangeFinder(minH, maxH, minVal, maxVal, val){
     //edge cases
-    console.log(val)
     let tempVal = val
     if (val < minVal){ tempVal = minVal}
     if (val > maxVal){ tempVal = maxVal}
-    let h = hueInterpolator(minH, maxH, minVal, maxVal, tempVal);;
+    let h = interpolate(minH, maxH, minVal, maxVal, tempVal);;
     
     if (val > maxVal + 1){
         h = 115;
@@ -74,8 +73,6 @@ export function hsbColorRangeFinder(minH, maxH, minVal, maxVal, val){
     let s = 1;
     let b = 1;
     let rgb = hsbToRgb(h, s, b);
-
-    console.log(rgb)
 
     return rgb
 }
