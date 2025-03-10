@@ -469,37 +469,37 @@ function buildSeries(simDict){
     
     //why the do I have to do this, concat refused to work.
 
-    //electrodes.map(electrode => pos_ls.push(electrode))
+    
 
     let series= [
         {  
-        //electrode graph placed behind neuron activity
-        roam: "enabled", 
-        type: "graph", 
+            //electrode graph placed behind neuron activity
+            roam: "enabled", 
+            type: "graph", 
 
-        //positon
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        z:0,
-        zlevel:0,
+            //positon
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            z:0,
+            zlevel:0,
 
-        //charting settings
-        layout: "force",
-        coordinateSystem: 'cartesian2d',
+            //charting settings
+            layout: "force",
+            coordinateSystem: 'cartesian2d',
 
-        //symbol style
-        symbolSize: 30, 
-        label: {
-            show: true,
-            fontSize:14 
-        }, 
+            //symbol style
+            symbolSize: 30, 
+            label: {
+                show: true,
+                fontSize:14 
+            }, 
 
-        //edge style
-        edgeSymbol: ['circle', 'arrow'], 
-        edgeSymbolSize: [4, 8], 
+            //edge style
+            edgeSymbol: ['circle', 'arrow'], 
+            edgeSymbolSize: [4, 8], 
 
-        //data
-        data: electrodes,
+            //data
+            data: electrodes,
 
         },
         {   
@@ -546,7 +546,7 @@ function buildSeries(simDict){
             name: "Membrane Potential",
             type: "line", data:neurons[neuronTarget].vs,
             xAxisIndex: 1,
-            yAxisIndex: 1 
+            yAxisIndex: 1,
         
         }, 
         //will be the historic input stimuli dynamics(synaptic and electrodes)
@@ -564,7 +564,8 @@ function buildSeries(simDict){
             name: "Input Currents", 
             type: "line", data: neurons[neuronTarget].input_currents, 
             xAxisIndex: 2, 
-            yAxisIndex: 2 
+            yAxisIndex: 2,
+
         }  
     ]
     return series;
@@ -595,8 +596,11 @@ export function updateGraph(simData){
     curTime = Date.now()
     chart.setOption({
         series:series,
-        animation: false
+        animation: true,
+        animationDuration:100,
+        
     });
+    chart.on('finished', updateFrame)
     
-    requestAnimationFrame(updateFrame);
+    
 }

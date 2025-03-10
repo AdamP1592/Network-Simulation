@@ -45,7 +45,7 @@
     aspect-ratio: 1;
 }
 .overlappingMenu{
-    position:absolute;
+    position:fixed;
 
     display: none;
     flex-direction:column;
