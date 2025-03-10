@@ -400,15 +400,33 @@ export function buildGraphs(simDict) {
         tooltip: { 
             trigger:"item",
             formatter: function (params) {
-                if (params.dataType === "node") {
-                    if(params.name.includes("n")){
-                        return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
-                    } else{
-                        return `Synapse: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
+                //main graph
+                if (params.componentIndex < 2) {
+                    if(params.dataType === "node"){
+                        switch(params.name[0]){
+                            case "n":
+                                return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
+                            case "s":
+                                return `Synapse: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
+                            case "e":
+                                let neurons = params.data.connectedNeurons
+                                let currentType = params.data.currentType
+                                return `Connected Neurons: <b>${neurons} </b><br> Current Type: <b>${currentType}</b>`
+                        }
+                    
+                    
+                    } else if (params.dataType === "edge") {
+                        return `Synapse: <b>${params.data.source} → ${params.data.target}</b>`;
                     }
-                
-                } else if (params.dataType === "edge") {
-                    return `Synapse: <b>${params.data.source} → ${params.data.target}</b>`;
+                }
+                else if (params.componentIndex == 2) {
+                    return `Membrane Potential: <b>${params.data[1].toFixed(2)}</b> (mV)` 
+                }
+                else if (params.componentIndex == 3) {
+                    return `Synaptic Current: <b>${params.data[1].toFixed(2)}</b> (µA/cm²)` 
+                }
+                else if (params.componentIndex == 4) {
+                    return `Electrode Current: <b>${params.data[1].toFixed(2)}</b> (µA/cm²)` 
                 }
             }
         },
@@ -429,7 +447,6 @@ function buildSeries(simDict){
     let neurons = simDict["neurons"]
     let synapses = simDict["synapses"]
 
-    console.log(neurons)
 
     let newTime = Date.now();
     let timeDifferencePerUpdate = newTime - curTime;
@@ -521,6 +538,7 @@ function buildSeries(simDict){
                 color:"#000000"
             },
 
+
         },
 
         //will be the historic membrane potential graph of the "focused" neuro
@@ -534,9 +552,11 @@ function buildSeries(simDict){
         //will be the historic input stimuli dynamics(synaptic and electrodes)
         { // Right bottom chart
             name: "Synaptic Dynamics", 
-            type: "line", data: neurons[neuronTarget].synaptic_inputs, 
+            type: "line", 
 
-            lineStyle: {color: '#d5ceeb'},
+            lineStyle: {color: '#000000'},
+
+            data: neurons[neuronTarget].synaptic_inputs,
             xAxisIndex: 2, 
             yAxisIndex: 2 
         },

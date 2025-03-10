@@ -1,7 +1,26 @@
 class simulation():
-    default_neural_params = {'c': 1, "gk": 36.004631953926285, "gna": 119.91561331101256, "gleak": 0.2997385592373893, "ek": -82.03623253390188, "ena": 45.028284147345595, "eleak": -59.35717906013866, "c": 0.9998470285990088, "vrest": -59.35717564093531, "vthresh": 15.119047441363206}
+    #default_neural_params = {'c': 1,
+    #                        "gk": 36.004631953926285,
+    #                        "gna": 119.91561331101256,
+    #                        "gleak": 0.2997385592373893,
+    #                        "ek": -82.03623253390188,
+    #                        "ena": 45.028284147345595, 
+    #                        "eleak": -59.35717906013866,
+    #                        "vrest": -59.35717564093531, 
+    #                        "vthresh": 15.119047441363206}
     #holders for neuron data
+    default_neural_params = {
+        "c": 1.0,  # membrane capacitance, in uF/cm^2
+        "gna": 120.0,   # maximum conducances, in mS/cm^2
+        "gk": 36.0,
+        'gleak': 0.3,
+        "ena": 50.0,    # reversal potentials, in mV
+        "ek": -77.0,
+        "eleak": -54.387,
+        "vrest":-65,
+        "vthresh": -55
 
+    }
     #{"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
     # "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
     ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.8], "u_max": [0.8, 0.1], "u":[0.1], "e": [0, 0], "g_max": [0.3, 1]}
@@ -121,11 +140,6 @@ class simulation():
 
                 self.neuron_models[j].update()
             
-                #self.input_currents[j][int(self.sim_index % self.__num_stored_values)] = self.neuron_models[j].input_current
-                
-                #vs[j] = vs for a specific neuron, [simIndex % vs per neuron ]
-                #self.vs[j][int(self.sim_index % self.__num_stored_values)] = self.neuron_models[j].v
-                
 
             for j in range(len(self.synapses)):
                 self.synapses[j].update()

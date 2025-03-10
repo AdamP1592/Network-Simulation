@@ -4,6 +4,9 @@ document.addEventListener("DOMContentLoaded",setUpContextMenu);
 var menuTarget;
 var enterPressed;
 
+let menuHideTimer = setTimeout(()=>{}, 1);
+let textHideTimer = setTimeout(()=>{}, 1);
+
 var textFieldVisible = false;
 var rightClickTarget = "";
 
@@ -24,19 +27,26 @@ function setUpContextMenu(){
 }
 function setTextInputMenus(left, top){
     //menuTarget is placed within the menu, so 
-    menuTarget.style.top = top;
     menuTarget.style.left = left;
+
+    menuButtonFocus.appendChild(menuTarget)
 
     menuTarget.style.display = "inline-block";
     
 }
 function contextMenuButtonHover(event){
-
+    clearTimeout(menuHideTimer)
+    
     //setup for switch
     var neededData = {Sin:2, Square:2, Constant:1, None:0};
+
+    let y = event.view.pageYOffset
     
-    let btnElem = event.target;
+    let btnElem = event.currentTarget;
+  
+
     menuButtonFocus = btnElem;
+
     
     let menuElem = document.getElementById("customContextMenuHolder");
 
@@ -66,12 +76,7 @@ function contextMenuButtonHover(event){
             break;
         default:
             //hovering anything but the buttons that need text data clears it
-            menuTarget = null;
-            menuButtonFocus = null;
 
-            textFieldVisible = false;
-            oneEntryElem.style.display = "none";
-            twoEntryElem.style.display = "none";
             return;
             
     }
@@ -80,8 +85,20 @@ function contextMenuButtonHover(event){
 
     //since textField is placed within the whole menu, the top = 0 is just the top of the menu
     //and left = 0 is the leftside of the menu, so shift it over the width of the menu
-    setTextInputMenus(rect.width, (rect.top) - topMenu);
+    setTextInputMenus(rect.width, 0);
     
+}
+
+function hideText(){
+    let oneEntryElem =  document.getElementById("contextHoverOneEntry");
+    let twoEntryElem = document.getElementById("contextHoverTwoEntries");
+    
+    menuTarget = null;
+    menuButtonFocus = null;
+
+    textFieldVisible = false;
+    oneEntryElem.style.display = "none";
+    twoEntryElem.style.display = "none";
 }
 function keyReleased(event){
     var key = event.keyCode;
@@ -118,9 +135,13 @@ function keyPressed(event){
 function getTextInputParams(){
     var params = {}
     let inputSections = menuTarget.getElementsByClassName("textField");
-    
+
+    console.log(menuButtonFocus)
     //pulls text from the currently opened menu
-    let currentType = menuButtonFocus.innerText.trim();
+    let currentType = menuButtonFocus.innerText.split(/\r?\n/)[0]
+    
+    console.log("currentType:" , currentType)
+    
     //sets current type
     params["currentType"] = currentType
     //iterates through the open text menu to pulll data from display
@@ -149,21 +170,46 @@ function hideMenu(){
     contextMenu.style.display = "none";
 }
 
-function contextMenuButtonLeave(event){
-    hideMenu()
-}  
 function noCurrentButtonClicked(event){
     console.log("No current Clicked")
     let currentDict = {currentType:"None"}
     setCurrent(currentDict)
     hideMenu()
 }
+
+function contextMenuButtonLeave(){
+    menuHideTimer = setTimeout(() => {
+        hideMenu();
+    }, 200);
+}  
+function textMenuEnter(){
+    clearTimeout(textHideTimer)
+    clearTimeout(menuHideTimer)
+}
+function textMenuLeave(){
+    textHideTimer = setTimeout(() => {
+        hideText();
+        console.log("hiding text")
+      }, 200);
+    menuHideTimer = setTimeout(() => {
+        hideMenu();
+    }, 200);
+}
 function setUpButtonEvents(){
 
     let btns = Array.from(document.getElementsByClassName("buttonHolder"));
     let contextMenu = document.getElementById("customContextMenuHolder");
+
     document.addEventListener('keydown', keyPressed);
     document.addEventListener('keyup', keyReleased);
+
+    let inputSections = Array.from(document.getElementsByClassName("contextText"));
+    console.log(inputSections)
+    for(let i in inputSections){
+        let textElem = inputSections[i]
+        textElem.addEventListener('mouseenter', textMenuEnter);
+        textElem.addEventListener('mouseleave', textMenuLeave);
+    }
 
     for(let i in btns){
         let btnHolder = btns[i]; //buttons are stored in a buttonholder li
