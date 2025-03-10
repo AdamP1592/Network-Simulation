@@ -9,11 +9,13 @@ import {iterateSim} from './comms.js'
 import {setUpNetwork} from './comms.js'
 import {addCurrent} from './comms.js'
 
-
+import {queue} from './queue.js'
 
 document.addEventListener("DOMContentLoaded",setUpNetwork);
 var chart;
 var lastDict;
+
+var dataQueue = new queue()
 
 var rightClickTarget = null;
 
@@ -172,7 +174,7 @@ function electrodeBuilder(electrodeChanges){
             for(let i in electrode["connectedNeurons"]){
                 let neuronName = electrode["connectedNeurons"][i] 
                 //neuronIndex
-                currentBuilder[neuronName[1]] = electrodeChanges[electrode.name]
+                currentBuilder[neuronName.slice(1)] = electrodeChanges[electrode.name]
                 
             }
             //console.log(currentBuilder)
@@ -349,6 +351,8 @@ function chartClicked(event){
 
 
 export function buildGraphs(simDict) {
+
+    dataQueue.enqueue(simDict)
     let btn = document.getElementById("pause_button");
     btn.addEventListener('click',pauseRender)
 
@@ -441,19 +445,73 @@ export function buildGraphs(simDict) {
     }
     updateGraph(simDict)
 }
-
-function buildSeries(simDict){
-
-    
+function getPositionAndConnection(simDict){
     let neurons = simDict["neurons"]
     let synapses = simDict["synapses"]
 
 
     let newTime = Date.now();
     let timeDifferencePerUpdate = newTime - curTime;
-    let updateTime = 5000; // each update is 5 seconds in sim time
+    let updateTime = 6000; // each update is 5 seconds in sim time
+
+    
+    //dynamic number of steps based on the passed step time
+
+    let updateTimeToTimeDifferenceRatio = Math.trunc(updateTime / timeDifferencePerUpdate);
 
 
+    let electrodeChanges = getElectrodeChanges()
+    electrodeBuilder(electrodeChanges)
+
+    let cons = get_connection_list(synapses);
+    let pos_ls = position_to_data_arr(neurons, synapses);
+
+    return {connections:cons, positions:pos_ls}
+
+    
+    //why the do I have to do this, concat refused to work
+}
+
+function getSideGraph(){
+    let data = []
+    var vs = []
+    var synapticInputs = []
+    var inputCurrents = []
+
+    for(let i in dataQueue.items){
+        let simDict = dataQueue.items[i]
+
+        let neuronData = simDict.neurons[neuronTarget]
+        
+        vs = vs.concat(neuronData.vs)
+        synapticInputs = synapticInputs.concat(neuronData.synaptic_inputs)
+        inputCurrents = inputCurrents.concat(neuronData.input_currents)
+
+    }
+    return {vs:vs, synapticInputs:synapticInputs, inputCurrents:inputCurrents}
+}
+function buildSeries(simDict){
+
+    let currentNeuronData = dataQueue.items[dataQueue.length - 1].neurons
+
+    //most recent second of data
+    simDict = dataQueue.items[dataQueue.length - 1]
+    let positions = [];
+    let connections = []
+    
+    let sideGraphData = getSideGraph()
+
+    //console.log("Side Graph: ", sideGraphData)
+
+    let neurons = simDict["neurons"]
+    let synapses = simDict["synapses"]
+
+
+    let newTime = Date.now();
+    let timeDifferencePerUpdate = newTime - curTime;
+    let updateTime = 6000; // each update is 5 seconds in sim time
+
+    
     //dynamic number of steps based on the passed step time
 
     let updateTimeToTimeDifferenceRatio = Math.trunc(updateTime / timeDifferencePerUpdate);
@@ -545,7 +603,7 @@ function buildSeries(simDict){
         //will be the historic membrane potential graph of the "focused" neuro
         { // Right top chart
             name: "Membrane Potential",
-            type: "line", data:neurons[neuronTarget].vs,
+            type: "line", data:sideGraphData.vs,
             xAxisIndex: 1,
             yAxisIndex: 1,
         
@@ -557,13 +615,13 @@ function buildSeries(simDict){
 
             lineStyle: {color: '#000000'},
 
-            data: neurons[neuronTarget].synaptic_inputs,
+            data: sideGraphData.synapticInputs,
             xAxisIndex: 2, 
             yAxisIndex: 2 
         },
         { // Right bottom chart
             name: "Input Currents", 
-            type: "line", data: neurons[neuronTarget].input_currents, 
+            type: "line", data: sideGraphData.inputCurrents, 
             xAxisIndex: 2, 
             yAxisIndex: 2,
 
@@ -579,8 +637,12 @@ function updateFrame(){
         }, 1000 / 30); //30 fps max
         return;
     }
-    let newTime = Date.now();
-    iterateSim()
+    iterateSim().then(data=>{
+        dataQueue.enqueue(data)
+        updateGraph(data);
+    });
+    
+    
 }
 export function updateGraph(simData){
 
@@ -592,16 +654,27 @@ export function updateGraph(simData){
     //timestep pull the data for the next animation
     //once the last update is called, build a new series with the new options.
 
-    let series = buildSeries(simData);    
-    
+    //only 6 seconds of data available at any given moment
+    if(dataQueue.length === 100){
+        dataQueue.dequeue()
+    }
+    var series;
+
+    series = buildSeries(simData);    
+
     curTime = Date.now()
     chart.setOption({
         series:series,
-        animation: true,
-        animationDuration:100,
+        animation: false,
+        //animationDuration:10,
         
     });
-    chart.on('finished', updateFrame)
+
+    setTimeout(() => {
+        window.requestAnimationFrame(updateFrame)
+
+    }, 50)
     
+    //chart.on('finished', updateFrame)
     
 }

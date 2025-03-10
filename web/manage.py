@@ -63,7 +63,7 @@ def iterate_sim():
     global num_iterations
     t = time.time()
     ##  get 1 second of sim data. Add that to the dict
-    num_steps = int(1/sim.dt)
+    num_steps = int(0.1/sim.dt)
     graphing_params = sim.iterate(num_steps)
 
     vs = graphing_params["vs"]

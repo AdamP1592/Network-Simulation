@@ -1,4 +1,6 @@
 import {getTarget} from './graph.js'
+
+import {queue} from './queue.js'
 document.addEventListener("DOMContentLoaded",setUpContextMenu);
 
 var menuTarget;
@@ -136,11 +138,8 @@ function getTextInputParams(){
     var params = {}
     let inputSections = menuTarget.getElementsByClassName("textField");
 
-    console.log(menuButtonFocus)
     //pulls text from the currently opened menu
     let currentType = menuButtonFocus.innerText.split(/\r?\n/)[0]
-    
-    console.log("currentType:" , currentType)
     
     //sets current type
     params["currentType"] = currentType
@@ -204,7 +203,6 @@ function setUpButtonEvents(){
     document.addEventListener('keyup', keyReleased);
 
     let inputSections = Array.from(document.getElementsByClassName("contextText"));
-    console.log(inputSections)
     for(let i in inputSections){
         let textElem = inputSections[i]
         textElem.addEventListener('mouseenter', textMenuEnter);

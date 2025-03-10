@@ -23,8 +23,8 @@ class simulation():
     }
     #{"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
     # "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
-    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.8], "u_max": [0.8, 0.1], "u":[0.1], "e": [0, 0], "g_max": [0.3, 1]}
-    gaba_synapse_params = {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.3, 0.5], "u":[0.1], "e":[-75, -70], "g_max": [0.3, 1]}
+    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.8], "u_max": [0.8, 0.1], "u":[0], "e": [0, 0], "g_max": [0.3, 1]}
+    gaba_synapse_params = {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.3, 0.5], "u":[0], "e":[-75, -70], "g_max": [0.3, 1]}
     
     def __init__(self, num_neurons:int, dt:float):
         self.__num_stored_values = int(100/dt)
