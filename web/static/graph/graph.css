@@ -12,11 +12,17 @@
 }
 #chart_bottom{
     width:100%;
+
+    height: 1.5em;
     margin-top:2px;
 
-    padding:2px;
+    padding-top:2px;
+    padding-left:4px;
+
     display:flex;
     justify-content: space-between;
+    align-items:center;
+
 }
 #chart_bottom>*{
     list-style:none;
@@ -25,24 +31,49 @@
     width:50px;
 }
 #chart_bottom{
-    background-color: #0AAE5E;
+    background-color: #0AAE5E
 }
 #pause_button{
-    height:100%;
+    position:absolute;
+    left:0;
+    top: 1.5px;
+    /* 0 height because boder makes up height and no content */
+    height: 0;
+
     aspect-ratio: 1;
+    padding: 0;
+
+    border-width:  0.75em 0 0.75em 1.5em;
+
+    border-color: transparent transparent transparent #0d5d36;
+    box-sizing:border-box;
 
 }
 #pause_button.play{
     background-color: transparent;
-    box-sizing: border-box;
-    border-right:0;
-    border-top:100%;
-    border-bottom:1px;
-    
+    box-sizing: border-box;    
+}
+#pause_button.pause{
+    position:absolute;
+    background-color:transparent;
+    left:0;
+    top: 1.5px;
+    /* 0 height because boder makes up height and no content */
+    height: 1.5em;
+
+    aspect-ratio: 1;
+    padding: 0;
+
+    border-width:0 0 0 0.75em;
+    border-color:#0d5d36;
+    border-style:double;
+
 }
 #pause_button_container{
     height:100%;
     aspect-ratio: 1;
+    position:relative;
+    box-sizing:border-box;
 }
 .overlappingMenu{
     position:fixed;

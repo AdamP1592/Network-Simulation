@@ -20,7 +20,7 @@ def add_neuron(sim, params = None):
 
 def create_sim(num_neurons, x_max, y_max):
     from numpy import random
-    sim = simulation(num_neurons, 0.001)
+    sim = simulation(num_neurons, 0.0005)
 
     soma_xs = random.rand(num_neurons) * x_max
     soma_ys = random.rand(num_neurons) * y_max

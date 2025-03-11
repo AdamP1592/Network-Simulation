@@ -136,7 +136,7 @@ class simulation():
                     vs[j].append([self.t, self.neuron_models[j].v])
                     input_currents[j].append([self.t, self.neuron_models[j].input_current])
 
-                    synaptic_inputs[j].append([self.t, self.neuron_models[j].i_syn])
+                    synaptic_inputs[j].append([self.t, -1 * self.neuron_models[j].i_syn])
 
                 self.neuron_models[j].update()
             

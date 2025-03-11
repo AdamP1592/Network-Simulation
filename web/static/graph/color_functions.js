@@ -77,3 +77,6 @@ export function hsbColorRangeFinder(minH, maxH, minVal, maxVal, val){
     return rgb
 }
 
+export function rgbToCss(rgbArray) {
+    return `rgb(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]})`;
+}

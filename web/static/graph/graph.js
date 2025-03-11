@@ -1,6 +1,6 @@
 
 import {hsbColorRangeFinder} from './color_functions.js'
-import {interpolate} from './color_functions.js'
+import {rgbToCss} from './color_functions.js'
 
 import {getElectrodeChanges} from './contextMenu.js'
 
@@ -12,22 +12,23 @@ import {addCurrent} from './comms.js'
 import {queue} from './queue.js'
 
 document.addEventListener("DOMContentLoaded",setUpNetwork);
+//chart variables
 var chart;
-var lastDict;
-
-var dataQueue = new queue()
 
 var rightClickTarget = null;
-
 var neuronTarget = 0;
 
 var rightClickX;
 var rightClickY;
 
 var paused = false;
-
+//for creating all the electrodes client side
 var electrodes = [];
 var addedElectrodes = 0;
+
+//for scrolling side graphs
+var dataQueue = new queue()
+
 
 var curTime = Date.now();
 
@@ -41,9 +42,7 @@ export function getTarget(){
 
 */
 
-function rgbToCss(rgbArray) {
-    return `rgb(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]})`;
-}
+
 
 export function pauseRender(){
     //branchless approach

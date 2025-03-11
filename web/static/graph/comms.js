@@ -1,9 +1,8 @@
 import {buildGraphs} from './graph.js'
 
-import {updateGraph} from './graph.js'
 export function iterateSim(){
-
-    let simData = fetch('/simulation/iterateSim', {
+    //iterates simulation 
+    return fetch('/simulation/iterateSim', {
         method:'POST',
 
     }).then( response => {
@@ -16,7 +15,6 @@ export function iterateSim(){
     }).catch((error)=>{
         console.error("Error:", error);
     });
-    return simData
 
 }
 export function setUpNetwork(){
