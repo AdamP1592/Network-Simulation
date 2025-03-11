@@ -112,6 +112,10 @@ function dataBuilder(objs, paramType){
             }
 
         }
+        if(paramType == "s"){
+            position_obj["neurotransmitterType"] = params.neurotransmitterType
+            position_obj["connectedNeurons"] = objs[objIndex].connections
+        }
         position_ls.push(position_obj)
     
     }
@@ -261,7 +265,6 @@ function nodeClicked(params){
 
     //if event is a part of the first component(main graph)
 
-    console.log(params)
     if(params["seriesIndex"] < 2){
         switch(nodeName[0]){
             //if electrode is clicked
@@ -412,7 +415,10 @@ export function buildGraphs(simDict) {
                             case "n":
                                 return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
                             case "s":
-                                return `Synapse: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
+                                let connections = params.data.connectedNeurons
+                                let preConnections = connections.pre
+                                let postConnections = connections.post
+                                return `Connections: <b>Pre: ${preConnections} Post: ${postConnections}</b><br>Neurotransmitter Type: <b>${params.data.neurotransmitterType}</b>`;
                             case "e":
                                 let neurons = params.data.connectedNeurons
                                 let currentType = params.data.currentType
@@ -473,7 +479,6 @@ function getPositionAndConnection(simDict){
 }
 
 function getSideGraph(){
-    let data = []
     var vs = []
     var synapticInputs = []
     var inputCurrents = []
@@ -492,12 +497,8 @@ function getSideGraph(){
 }
 function buildSeries(simDict){
 
-    let currentNeuronData = dataQueue.items[dataQueue.length - 1].neurons
-
     //most recent second of data
     simDict = dataQueue.items[dataQueue.length - 1]
-    let positions = [];
-    let connections = []
     
     let sideGraphData = getSideGraph()
 
@@ -529,7 +530,7 @@ function buildSeries(simDict){
     //why the do I have to do this, concat refused to work.
 
     
-
+        
     let series= [
         {  
             //electrode graph placed behind neuron activity
@@ -606,7 +607,8 @@ function buildSeries(simDict){
             type: "line", data:sideGraphData.vs,
             xAxisIndex: 1,
             yAxisIndex: 1,
-        
+            showSymbol: false,
+
         }, 
         //will be the historic input stimuli dynamics(synaptic and electrodes)
         { // Right bottom chart
@@ -617,13 +619,24 @@ function buildSeries(simDict){
 
             data: sideGraphData.synapticInputs,
             xAxisIndex: 2, 
-            yAxisIndex: 2 
+            yAxisIndex: 2,
+            showSymbol: false,
+
+            tooltip:{
+                trigger:'axis',
+                formatter:(params) => {
+                    console.log(params)
+
+                }
+            }
         },
         { // Right bottom chart
             name: "Input Currents", 
-            type: "line", data: sideGraphData.inputCurrents, 
+            type: "line", 
+            data: sideGraphData.inputCurrents, 
             xAxisIndex: 2, 
             yAxisIndex: 2,
+            showSymbol: false
 
         }  
     ]

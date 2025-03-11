@@ -35,6 +35,8 @@ class tsodyks_markram_synapse():
 
 
     def get_params(self):
+        paramSwitch = ["nmda", "ampa"]
+        
         syn_params = {
             "state":{
                 "r":self.r,
@@ -53,8 +55,8 @@ class tsodyks_markram_synapse():
                 "tau_recovery": self.tau_r,
                 "tau_facilitation": self.tau_f,
                 "x": self.x,
-                "y": self.y
-
+                "y": self.y,
+                "neurotransmitterType":paramSwitch[self.reversal_potential > -1]
             },
             "connections":{
                 "pre":self.pre_indicies,
