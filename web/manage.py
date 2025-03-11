@@ -63,7 +63,7 @@ def iterate_sim():
     global num_iterations
     t = time.time()
     ##  get 1 second of sim data. Add that to the dict
-    num_steps = int(1/sim.dt)
+    num_steps = int(0.1/sim.dt)
     graphing_params = sim.iterate(num_steps)
 
     vs = graphing_params["vs"]
@@ -100,13 +100,13 @@ def set_current():
         print(stim_params)
         
         if neuron_stim_type == "Square":
-            neuron.set_square_current(stim_params["freq"], stim_params["maxCurrent"])
+            neuron.set_square_current(stim_params["freq"], stim_params["maxCurrent"]/2)
 
         elif neuron_stim_type == "Sin":
-            neuron.set_sin_current(stim_params["freq"], stim_params["maxCurrent"])
+            neuron.set_sin_current(stim_params["freq"], stim_params["maxCurrent"]/2)
 
         elif neuron_stim_type == "Constant":
-            neuron.set_const_current(stim_params["maxCurrent"])
+            neuron.set_const_current(stim_params["maxCurrent"]/2)
 
         elif neuron_stim_type == "None":
             neuron.set_no_current()

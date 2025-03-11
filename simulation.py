@@ -23,9 +23,9 @@ class simulation():
     }
     #{"gaba": {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.05, 0.3], "u":[0.1], "e":[-70, -75], "alpha": [0.01, 0.05], "beta": [0.05, 0.5], "g_max": [0.1, 1]},
     # "ampa": {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.5], "u_max": [0.1, 0.7], "u":[0.1], "e": [0, 0], "alpha": [0.01, 0.1], "beta": [0.1, 1], "g_max": [0.1, 1]}}
-    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.8], "u_max": [0.8, 0.1], "u":[0.1], "e": [0, 0], "g_max": [0.3, 1]}
-    gaba_synapse_params = {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.3, 0.5], "u":[0.1], "e":[-75, -70], "g_max": [0.3, 1]}
-    
+    ampa_synapse_params = {"tau_recovery": [0.2, 1], "tau_facilitation": [0.05, 0.8], "u_max": [0.8, 0.1], "u":[0], "e": [0, 0], "g_max": [0.3, 1]}
+    gaba_synapse_params = {"tau_recovery": [0.5, 2], "tau_facilitation": [0.05, 0.2],"u_max":[0.5, 0.3], "u":[0], "e":[-75, -70], "g_max": [0.3, 1]}
+    synapse_switch = [ampa_synapse_params, gaba_synapse_params]
     def __init__(self, num_neurons:int, dt:float):
         self.__num_stored_values = int(100/dt)
         self.setup_sim(num_neurons, dt)
@@ -136,7 +136,7 @@ class simulation():
                     vs[j].append([self.t, self.neuron_models[j].v])
                     input_currents[j].append([self.t, self.neuron_models[j].input_current])
 
-                    synaptic_inputs[j].append([self.t, self.neuron_models[j].i_syn])
+                    synaptic_inputs[j].append([self.t, -1 * self.neuron_models[j].i_syn])
 
                 self.neuron_models[j].update()
             
@@ -155,10 +155,12 @@ class simulation():
 
     def create_synapse(self, pre_synaptic_neuron_indexes:list, post_synaptic_neuron_indexes:list, synapse_params = {}):
         from synapse_models.synapse import tsodyks_markram_synapse
+        import random
         #activation multiplier should proportional to (number of in and out connections)/(largest synapse size)
 
         if not synapse_params.keys():
-            synapse_params = self.ampa_synapse_params
+            synapse_params = self.synapse_switch[random.randint(0,1)]
+
 
         size = len(pre_synaptic_neuron_indexes) + len(post_synaptic_neuron_indexes)
         if size > self.largest_synapse_size:

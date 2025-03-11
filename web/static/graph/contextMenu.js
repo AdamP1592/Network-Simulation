@@ -1,4 +1,6 @@
 import {getTarget} from './graph.js'
+
+import {queue} from './queue.js'
 document.addEventListener("DOMContentLoaded",setUpContextMenu);
 
 var menuTarget;
@@ -25,7 +27,7 @@ function setUpContextMenu(){
     setUpButtonEvents();
 
 }
-function setTextInputMenus(left, top){
+function setTextInputMenus(left){
     //menuTarget is placed within the menu, so 
     menuTarget.style.left = left;
 
@@ -80,12 +82,15 @@ function contextMenuButtonHover(event){
             return;
             
     }
+
     //if you dont get caught by the default catch case the text field is visible
     textFieldVisible = true;
 
-    //since textField is placed within the whole menu, the top = 0 is just the top of the menu
-    //and left = 0 is the leftside of the menu, so shift it over the width of the menu
-    setTextInputMenus(rect.width, 0);
+    //shift to the left the width of the menu
+    setTextInputMenus(rect.width);
+
+    //focus the inputText
+    menuTarget.getElementsByClassName("textField")[0].select()
     
 }
 
@@ -136,11 +141,8 @@ function getTextInputParams(){
     var params = {}
     let inputSections = menuTarget.getElementsByClassName("textField");
 
-    console.log(menuButtonFocus)
     //pulls text from the currently opened menu
     let currentType = menuButtonFocus.innerText.split(/\r?\n/)[0]
-    
-    console.log("currentType:" , currentType)
     
     //sets current type
     params["currentType"] = currentType
@@ -204,7 +206,6 @@ function setUpButtonEvents(){
     document.addEventListener('keyup', keyReleased);
 
     let inputSections = Array.from(document.getElementsByClassName("contextText"));
-    console.log(inputSections)
     for(let i in inputSections){
         let textElem = inputSections[i]
         textElem.addEventListener('mouseenter', textMenuEnter);

@@ -12,7 +12,9 @@ body{
 main{
 
     position:relative;
-    padding:5%;
+    padding: 5vh 8vw;
+    margin-left:10%;
+    margin-right:10%;
 
     align-items:center;
     text-align:center;
