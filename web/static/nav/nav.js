@@ -1,38 +1,43 @@
 console.log("nav pulled");
-//window.onload(set_active_button())
 
+// Run startup when the DOM is ready.
+document.addEventListener("DOMContentLoaded", startup);
 
-document.addEventListener("DOMContentLoaded", startup)
-
-function startup(){
-    set_active_button();
+/**
+ * Initializes the navigation bar.
+ */
+function startup() {
+    setActiveButton();
 }
 
-function set_active_button(){
-    console.log("Setting up nav")
-    
-    var button_dict = {};
-    //get all available pages(buttons point directly to pages)
-    const nav_buttons = document.getElementsByClassName("nav_button");
+/**
+ * Sets up active navigation button based on current URL.
+ */
+function setActiveButton() {
+    console.log("Setting up nav");
 
-    //adds onlcik event to all buttons
-    Array.from(nav_buttons).forEach(button_elem => {
-        
-        let txt = button_elem.textContent.trim().toLowerCase();
-        console.log(button_elem)
-        button_elem.addEventListener('click', function(){
-            window.location.pathname = "/" + txt
-        })
-        
-        button_dict[txt] = button_elem;
+    const buttonDict = {};
+    // Get all navigation buttons.
+    const navButtons = document.getElementsByClassName("nav_button");
+
+    // Add click event to each button.
+    Array.from(navButtons).forEach(buttonElem => {
+        // Extract text content and convert to lowercase.
+        const txt = buttonElem.textContent.trim().toLowerCase();
+        console.log(buttonElem);
+        buttonElem.addEventListener('click', function() {
+            window.location.pathname = "/" + txt;
+        });
+
+        // Save reference to button in a dictionary.
+        buttonDict[txt] = buttonElem;
     });
 
-    //get current url, finds that urlname 
+    // Determine current page from URL.
     const subURL = window.location.pathname.slice(1);
     
-    var button = button_dict[subURL];
-    button.className+=" nav_pressed"
-
+    // Check if a matching button exists, then add the active class.
+    if (buttonDict[subURL]) {
+        buttonDict[subURL].className += " nav_pressed";
+    }
 }
-
-

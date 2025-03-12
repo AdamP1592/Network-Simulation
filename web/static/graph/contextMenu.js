@@ -1,225 +1,249 @@
 import {getTarget} from './graph.js'
 
-import {queue} from './queue.js'
-document.addEventListener("DOMContentLoaded",setUpContextMenu);
+console.log("nav pulled");
 
-var menuTarget;
-var enterPressed;
+// Set up context menu when DOM is ready.
+document.addEventListener("DOMContentLoaded", setUpContextMenu);
 
-let menuHideTimer = setTimeout(()=>{}, 1);
-let textHideTimer = setTimeout(()=>{}, 1);
+let menuTarget;
+let enterPressed;
+let menuHideTimer = setTimeout(() => {}, 1);
+let textHideTimer = setTimeout(() => {}, 1);
+let textFieldVisible = false;
+let rightClickTarget = "";
+let menuButtonFocus;
+let electrodeChanges = {};
 
-var textFieldVisible = false;
-var rightClickTarget = "";
-
-var menuButtonFocus;
-
-var electrodeChanges = {}
-
-export function getElectrodeChanges(){
-    let tempChanges = electrodeChanges;
-    electrodeChanges = {}
+/**
+ * Retrieves and clears any electrode changes that have been set.
+ * @returns {Object} The electrode changes.
+ */
+export function getElectrodeChanges() {
+    const tempChanges = electrodeChanges;
+    electrodeChanges = {};
     return tempChanges;
 }
 
-function setUpContextMenu(){
-    console.log("Setting up")
+/**
+ * Initializes context menu functionality.
+ */
+function setUpContextMenu() {
+    console.log("Setting up context menu");
     setUpButtonEvents();
-
 }
-function setTextInputMenus(left){
-    //menuTarget is placed within the menu, so 
-    menuTarget.style.left = left;
 
-    menuButtonFocus.appendChild(menuTarget)
-
+/**
+ * Positions and displays the text input menu.
+ * @param {number} left - The left offset for the text input menu.
+ */
+function setTextInputMenus(left) {
+    // Position the menu at the given left offset.
+    menuTarget.style.left = left + "px";
+    // Append the text input menu to the currently focused button element.
+    menuButtonFocus.appendChild(menuTarget);
     menuTarget.style.display = "inline-block";
-    
 }
-function contextMenuButtonHover(event){
-    clearTimeout(menuHideTimer)
-    
-    //setup for switch
-    var neededData = {Sin:2, Square:2, Constant:1, None:0};
 
-    let y = event.view.pageYOffset
-    
-    let btnElem = event.currentTarget;
-  
+/**
+ * Handles hover events on context menu buttons.
+ * Determines which text input block to display based on the button text.
+ * @param {Event} event - The mouseover event.
+ */
+function contextMenuButtonHover(event) {
+    clearTimeout(menuHideTimer);
 
+    // Mapping of stimulation type to the number of required text input fields.
+    const neededData = { Sin: 2, Square: 2, Constant: 1, None: 0 };
+
+    const btnElem = event.currentTarget;
     menuButtonFocus = btnElem;
 
-    
-    let menuElem = document.getElementById("customContextMenuHolder");
+    const menuElem = document.getElementById("customContextMenuHolder");
+    const rect = btnElem.getBoundingClientRect();
 
-    let topMenu = parseInt(menuElem.style.top);
-    let rect = btnElem.getBoundingClientRect();
+    // Get the button text (in lowercase) to determine required inputs.
+    const btnElemText = btnElem.innerText.trim();
+    const numEntries = neededData[btnElemText];
 
-    let btnElemText = btnElem.innerText
-    let numEntries = neededData[btnElemText]
+    // Get the two potential text input menu elements.
+    const oneEntryElem = document.getElementById("contextHoverOneEntry");
+    const twoEntryElem = document.getElementById("contextHoverTwoEntries");
 
-    let oneEntryElem =  document.getElementById("contextHoverOneEntry");
-    let twoEntryElem = document.getElementById("contextHoverTwoEntries");
-    
-    let textMenuHeightMult = 1;
-
-    switch(numEntries){
+    switch (numEntries) {
         case 1:
             menuTarget = oneEntryElem;
-            //hides the other textfield
+            // Hide the other text input element.
             twoEntryElem.style.display = "none";
-            textMenuHeightMult = 2;
             break;
         case 2:
             menuTarget = twoEntryElem;
-            //hides the other textfield
+            // Hide the one-entry text input element.
             oneEntryElem.style.display = "none";
-            
             break;
         default:
-            //hovering anything but the buttons that need text data clears it
-
+            // If the button doesn't require text input, do nothing.
             return;
-            
     }
 
-    //if you dont get caught by the default catch case the text field is visible
     textFieldVisible = true;
-
-    //shift to the left the width of the menu
+    // Position the text input menu to the left by the width of the button.
     setTextInputMenus(rect.width);
-
-    //focus the inputText
-    menuTarget.getElementsByClassName("textField")[0].select()
-    
+    // Focus the first text field within the menu.
+    menuTarget.getElementsByClassName("textField")[0].select();
 }
 
-function hideText(){
-    let oneEntryElem =  document.getElementById("contextHoverOneEntry");
-    let twoEntryElem = document.getElementById("contextHoverTwoEntries");
-    
+/**
+ * Hides the text input menu.
+ */
+function hideText() {
+    const oneEntryElem = document.getElementById("contextHoverOneEntry");
+    const twoEntryElem = document.getElementById("contextHoverTwoEntries");
     menuTarget = null;
     menuButtonFocus = null;
-
     textFieldVisible = false;
     oneEntryElem.style.display = "none";
     twoEntryElem.style.display = "none";
 }
-function keyReleased(event){
-    var key = event.keyCode;
-    if(key == 13){
 
-        //clears enterPressed
-        console.log("released")
+/**
+ * Handles key release events.
+ * If Enter is released and the text input menu is visible, it submits the input.
+ * @param {KeyboardEvent} event - The keyup event.
+ */
+function keyReleased(event) {
+    if (event.keyCode === 13) { // Enter key
+        console.log("Enter key released");
         enterPressed = false;
-
-        //if the text menu is visible, enter is the submit btn so hide the menu
-        if(textFieldVisible){
-            hideMenu()
+        if (textFieldVisible) {
+            hideMenu();
         }
     }
 }
 
-//function to set the new current in electrodeChanges to get passed to the main graph
-function setCurrent(changes){
+/**
+ * Sets the current stimulation parameters for the electrode.
+ * @param {Object} changes - The current parameters from the text input.
+ */
+function setCurrent(changes) {
     enterPressed = true;
-    
+    // Retrieve the target from the graph.
     rightClickTarget = getTarget();
     electrodeChanges[rightClickTarget] = changes;
 }
 
-function keyPressed(event){
-    var key = event.keyCode;
-
-    //when enter is pressed and the text field for the context menu is visible, set the current based on the params in the text menu
-    if(key == 13 && textFieldVisible){
-        setCurrent(getTextInputParams())
+/**
+ * Handles key press events.
+ * When Enter is pressed and the text field is visible, it submits the input.
+ * @param {KeyboardEvent} event - The keydown event.
+ */
+function keyPressed(event) {
+    if (event.keyCode === 13 && textFieldVisible) {
+        setCurrent(getTextInputParams());
     }
 }
-//gets the text input from the context menu textfield
-function getTextInputParams(){
-    var params = {}
-    let inputSections = menuTarget.getElementsByClassName("textField");
 
-    //pulls text from the currently opened menu
-    let currentType = menuButtonFocus.innerText.split(/\r?\n/)[0]
-    
-    //sets current type
-    params["currentType"] = currentType
-    //iterates through the open text menu to pulll data from display
-    for(let menuItemIndex in inputSections){
-        let section = inputSections[menuItemIndex]
-        //only the items that contain an id, some other elements pop up
-        if(section.id){
-            params[section.id] = Number(section.value)
+/**
+ * Retrieves the parameters entered in the text input menu.
+ * @returns {Object} An object containing the current stimulation parameters.
+ */
+function getTextInputParams() {
+    const params = {};
+    const inputSections = menuTarget.getElementsByClassName("textField");
+    // Use the first line of the button text as the current type.
+    const currentType = menuButtonFocus.innerText.split(/\r?\n/)[0];
+    params["currentType"] = currentType;
+    // Iterate through the text fields to collect values.
+    for (let menuItemIndex in inputSections) {
+        const section = inputSections[menuItemIndex];
+        if (section.id) { // Ensure this element is an input.
+            params[section.id] = Number(section.value);
         }
     }
     return params;
-    
 }
-function hideMenu(){
+
+/**
+ * Hides the context menu.
+ */
+function hideMenu() {
     menuTarget = null;
     menuButtonFocus = null;
-
     textFieldVisible = false;
-    textFieldVisible = false;
-    let oneEntryElem =  document.getElementById("contextHoverOneEntry");
-    let twoEntryElem = document.getElementById("contextHoverTwoEntries");
-    let contextMenu = document.getElementById("customContextMenuHolder");
+    const oneEntryElem = document.getElementById("contextHoverOneEntry");
+    const twoEntryElem = document.getElementById("contextHoverTwoEntries");
+    const contextMenu = document.getElementById("customContextMenuHolder");
 
     oneEntryElem.style.display = "none";
     twoEntryElem.style.display = "none";
     contextMenu.style.display = "none";
 }
 
-function noCurrentButtonClicked(event){
-    console.log("No current Clicked")
-    let currentDict = {currentType:"None"}
-    setCurrent(currentDict)
-    hideMenu()
+/**
+ * Handles clicks on the "None" button, indicating no current stimulation.
+ * @param {Event} event - The click event.
+ */
+function noCurrentButtonClicked(event) {
+    console.log("No current Clicked");
+    const currentDict = { currentType: "None" };
+    setCurrent(currentDict);
+    hideMenu();
 }
 
-function contextMenuButtonLeave(){
+/**
+ * Handles mouse leave events for context menu buttons.
+ * Schedules the menu to be hidden after a short delay.
+ */
+function contextMenuButtonLeave() {
     menuHideTimer = setTimeout(() => {
         hideMenu();
     }, 200);
-}  
-function textMenuEnter(){
-    clearTimeout(textHideTimer)
-    clearTimeout(menuHideTimer)
 }
-function textMenuLeave(){
+
+/**
+ * Clears hide timers when the mouse enters the text input menu.
+ */
+function textMenuEnter() {
+    clearTimeout(textHideTimer);
+    clearTimeout(menuHideTimer);
+}
+
+/**
+ * Hides the text input menu when the mouse leaves, after a short delay.
+ */
+function textMenuLeave() {
     textHideTimer = setTimeout(() => {
         hideText();
-        console.log("hiding text")
-      }, 200);
+        console.log("Hiding text menu");
+    }, 200);
     menuHideTimer = setTimeout(() => {
         hideMenu();
     }, 200);
 }
-function setUpButtonEvents(){
 
-    let btns = Array.from(document.getElementsByClassName("buttonHolder"));
-    let contextMenu = document.getElementById("customContextMenuHolder");
+/**
+ * Sets up event listeners for context menu buttons and text inputs.
+ */
+function setUpButtonEvents() {
+    const btns = Array.from(document.getElementsByClassName("buttonHolder"));
+    const contextMenu = document.getElementById("customContextMenuHolder");
 
     document.addEventListener('keydown', keyPressed);
     document.addEventListener('keyup', keyReleased);
 
-    let inputSections = Array.from(document.getElementsByClassName("contextText"));
-    for(let i in inputSections){
-        let textElem = inputSections[i]
+    const inputSections = Array.from(document.getElementsByClassName("contextText"));
+    inputSections.forEach(textElem => {
         textElem.addEventListener('mouseenter', textMenuEnter);
         textElem.addEventListener('mouseleave', textMenuLeave);
-    }
+    });
 
-    for(let i in btns){
-        let btnHolder = btns[i]; //buttons are stored in a buttonholder li
-        let btn = btnHolder.children[0]; // only one button per holder
-        if(btn.innerText.trim() == "None"){
-            btn.addEventListener("click", noCurrentButtonClicked)
+    btns.forEach(btnHolder => {
+        // Each buttonHolder should contain one button.
+        const btn = btnHolder.children[0];
+        if (btn.innerText.trim() === "None") {
+            btn.addEventListener("click", noCurrentButtonClicked);
         }
-        btn.addEventListener("mouseover", contextMenuButtonHover)
-    }
-    contextMenu.addEventListener("mouseleave", contextMenuButtonLeave)
-    
+        btn.addEventListener("mouseover", contextMenuButtonHover);
+    });
+
+    contextMenu.addEventListener("mouseleave", contextMenuButtonLeave);
 }

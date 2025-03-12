@@ -92,8 +92,8 @@ export function buildGraphs(simDict) {
     const option = {
         title: [
             { text: "Network Activity", left: "5%", top: "5%" },
-            { text: "Membrane Potential", left: "60%", top: "5%" },
-            { text: "Input stimuli", left: "60%", top: "48%" }
+            { text: "Membrane Potential (mV)", left: "60%", top: "5%" },
+            { text: "Input stimuli (µA/cm²).", left: "60%", top: "48%" }
         ],
         grid: [
             { left: "5%", right: "45%", top: "15%", height: leftGridWidth + "px" },
