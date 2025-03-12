@@ -1,298 +1,378 @@
+// ------------------------------------------------------------
+// Import Dependencies
+// ------------------------------------------------------------
+import { hsbColorRangeFinder, rgbToCss } from './color_functions.js';
+import { getElectrodeChanges } from './contextMenu.js';
+import { iterateSim, setUpNetwork, addCurrent } from './comms.js';
+import { queue } from './queue.js';
 
-import {hsbColorRangeFinder} from './color_functions.js'
-import {rgbToCss} from './color_functions.js'
+// ------------------------------------------------------------
+// Global Variables and Initialization
+// ------------------------------------------------------------
+document.addEventListener("DOMContentLoaded", setUpNetwork);
 
-import {getElectrodeChanges} from './contextMenu.js'
+// ECharts instance
+let chart;
 
-import {iterateSim} from './comms.js'
+// Baseline and dynamic symbol sizes
+const baselineSymbolSizes = [0.3, 0.25];
+let symbolSizes = { n: baselineSymbolSizes[0], s: baselineSymbolSizes[1] };
 
-import {setUpNetwork} from './comms.js'
-import {addCurrent} from './comms.js'
+// Global variables for managing right-click events and simulation state
+let rightClickTarget = null;
+let neuronTarget = 0;
+let rightClickX;
+let rightClickY;
 
-import {queue} from './queue.js'
+let paused = false;
+let electrodes = [];
+let addedElectrodes = 0;
 
-document.addEventListener("DOMContentLoaded",setUpNetwork);
-//chart variables
-var chart;
+// Data queue to hold simulation updates for side graphs
+let dataQueue = new queue();
 
-
-var baselineSymbolSizes = [.3, .25]
-
-var symbolSizes = {n:baselineSymbolSizes[0], s:baselineSymbolSizes[1]};
-
-var rightClickTarget = null;
-var neuronTarget = 0;
-
-var rightClickX;
-var rightClickY;
-
-var paused = false;
-//for creating all the electrodes client side
-var electrodes = [];
-var addedElectrodes = 0;
-
-//for scrolling side graphs
-var dataQueue = new queue()
-
-
-var curTime = Date.now();
-
-//exports right click target to get used by context menu
-export function getTarget(){
+// ------------------------------------------------------------
+// Exports
+// ------------------------------------------------------------
+/**
+ * Returns the current right-click target.
+ * @returns {*} The current right-click target.
+ */
+export function getTarget() {
     return rightClickTarget;
 }
-/*
 
-    SIMPLE HELPER FUNCTIONS
+/**
+ * Toggles the pause/play state of the simulation.
+ */
+export function pauseRender() {
+    const switchClass = { pause: "play", play: "pause" };
+    const switchPause = { pause: false, play: true };
+    const btn = document.getElementById("pause_button");
 
-*/
-
-
-export function pauseRender(){
-    //branchless approach
-    let switchClass = {pause:"play", play:"pause"}
-    let switchPause = {pause:false, play:true}
-    let btn = document.getElementById("pause_button");
-    
+    // Update the paused flag and toggle the button's CSS class.
     paused = switchPause[btn.className];
-
-    btn.className = switchClass[btn.className]
-    
+    btn.className = switchClass[btn.className];
 }
 
+/**
+ * Initializes the chart and builds the initial graph.
+ * The provided simDict represents the starting state of the simulation.
+ * @param {Object} simDict - The initial simulation state.
+ */
+export function buildGraphs(simDict) {
+    // Enqueue the initial simulation state.
+    dataQueue.enqueue(simDict);
 
-/*
+    // Set up the pause button listener.
+    const btn = document.getElementById("pause_button");
+    btn.addEventListener('click', pauseRender);
 
-    DATA HELPER FUNCTIONS
+    // Disable the default context menu on the chart container.
+    const chartContainer = document.getElementById('chart_container');
+    chartContainer.addEventListener('contextmenu', e => e.preventDefault());
 
-*/
+    // Initialize the ECharts instance.
+    chart = echarts.init(chartContainer);
 
-/**  
- * extracts params for main graph from a neuron or a synapse type
- * @param {object} object
- * @param {string} paramType
+    // Attach event handlers for zooming, clicks, and right-clicks.
+    chart.on('dataZoom', updateSymbolSizesRelativeToGrid);
+    chart.getZr().on('click', chartClicked);
+    chart.on('click', nodeClicked);
+    chart.on('contextmenu', nodeRightClick);
+    chart.getZr().on('contextmenu', rightClick);
 
-**/
-function dataBuilder(objs, paramType){
-    
-    let position_ls = [];
-    let target =  `n${neuronTarget}`
+    // Calculate grid dimensions based on container width for responsive layout.
+    const container = document.getElementById('main_graph');
+    const containerWidth = container.offsetWidth;
+    const leftGridWidth = containerWidth * 0.5;
+    const rightGraphWidth = leftGridWidth * 0.4;
 
-    let symbols = {n:"circle", s:"rect"};
+    // Set up chart configuration options with multiple grids and axes.
+    const option = {
+        title: [
+            { text: "Network Activity", left: "5%", top: "5%" },
+            { text: "Membrane Potential", left: "60%", top: "5%" },
+            { text: "Input stimuli", left: "60%", top: "48%" }
+        ],
+        grid: [
+            { left: "5%", right: "45%", top: "15%", height: leftGridWidth + "px" },
+            { left: "65%", right: "5%", top: "15%", height: rightGraphWidth + "px" },
+            { left: "65%", right: "5%", top: "55%", height: rightGraphWidth + "px" }
+        ],
+        xAxis: [
+            { type: "value", gridIndex: 0, min: 0, max: 5 },
+            { type: "value", gridIndex: 1, scale: true },
+            { type: "value", gridIndex: 2, scale: true }
+        ],
+        yAxis: [
+            { type: "value", gridIndex: 0, min: 0, max: 5 },
+            { type: "value", gridIndex: 1 },
+            { type: "value", gridIndex: 2 }
+        ],
+        dataZoom: [
+            { type: 'inside', xAxisIndex: [0] },
+            { type: 'inside', yAxisIndex: [0] }
+        ],
+        tooltip: {
+            trigger: "item",
+            // Handles tooltip formatting based on node type and chart component.
+            formatter: function (params) {
+                if (params.componentIndex < 2) {
+                    if (params.dataType === "node") {
+                        switch (params.name[0]) {
+                            case "n":
+                                return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
+                            case "s":
+                                // For synapses, show connection details and neurotransmitter type.
+                                const connections = params.data.connectedNeurons;
+                                return `Connections: <b>Pre: ${connections.pre} Post: ${connections.post}</b><br>Neurotransmitter Type: <b>${params.data.neurotransmitterType}</b>`;
+                            case "e":
+                                return `Connected Neurons: <b>${params.data.connectedNeurons}</b><br>Current Type: <b>${params.data.currentType}</b>`;
+                        }
+                    } else if (params.dataType === "edge") {
+                        return `Synapse: <b>${params.data.source} → ${params.data.target}</b>`;
+                    }
+                } else if (params.componentIndex === 2) {
+                    return `Membrane Potential: <b>${params.data[1].toFixed(2)}</b> (mV)`;
+                } else if (params.componentIndex === 3) {
+                    return `Synaptic Current: <b>${params.data[1].toFixed(2)}</b> (µA/cm²)`;
+                } else if (params.componentIndex === 4) {
+                    return `Electrode Current: <b>${params.data[1].toFixed(2)}</b> (µA/cm²)`;
+                }
+            }
+        }
+    };
 
-    for(let objIndex in objs){
+    if (chart) {
+        chart.setOption(option);
+        updateSymbolSizesRelativeToGrid();
+    } else {
+        console.error("Echart instance failed to init");
+    }
+    // Update the graph using the initial simulation state.
+    updateGraph(simDict);
+}
 
-        //paramTypes[paramType] = 'neuron_params' or 'synapse_params
-        let params = objs[objIndex].params
+// ------------------------------------------------------------
+// Data Helper Functions
+// ------------------------------------------------------------
+/**
+ * Builds a data array for neurons or synapses.
+ * @param {Array} objs - Array of objects representing neurons or synapses.
+ * @param {string} paramType - 'n' for neuron, 's' for synapse.
+ * @returns {Array} Array of formatted position objects.
+ */
+function dataBuilder(objs, paramType) {
+    const positionList = [];
+    const target = `n${neuronTarget}`;
+    const symbols = { n: "circle", s: "rect" };
 
-        //graph data
-        let nodeName = paramType + String(objIndex);
-        let x = params.x
-        let y = params.y
+    // Iterate over each object using a for...in loop.
+    for (let objIndex in objs) {
+        const params = objs[objIndex].params;
+        const nodeName = paramType + String(objIndex);
+        const x = params.x;
+        const y = params.y;
         let cssColor = "#4287f5";
-        if(paramType === "n"){
-            let rgbColor = hsbColorRangeFinder(0, 70, params["vrest"] - 1, params["vthresh"], params["v"]);
+
+        if (paramType === "n") {
+            const rgbColor = hsbColorRangeFinder(0, 70, params.vrest - 1, params.vthresh, params.v);
             cssColor = rgbToCss(rgbColor);
         }
-        let position_obj = 
-        {
-            name:nodeName.toString(),
-            value:[x, y],
-            inputCurrents:"none",
-            //text
-            label: 
-            {
-                formatter:nodeName.toString(), 
-                color:"#000000",
-                fontSize:symbolSizes["n"] * 0.5
+        const positionObj = {
+            name: nodeName.toString(),
+            value: [x, y],
+            inputCurrents: "none",
+            label: {
+                formatter: nodeName.toString(),
+                color: "#000000",
+                fontSize: symbolSizes.n * 0.5
             },
-
-            //symbol style
             symbol: symbols[paramType],
             symbolSize: symbolSizes[paramType],
-
-            itemStyle:{
+            itemStyle: {
                 color: cssColor,
-                borderColor:"#000000",
-                borderWidth: 1.5 * Number(nodeName == target)
+                borderColor: "#000000",
+                borderWidth: 1.5 * Number(nodeName === target)
             }
-
+        };
+        if (paramType === "s") {
+            positionObj.neurotransmitterType = params.neurotransmitterType;
+            positionObj.connectedNeurons = objs[objIndex].connections;
         }
-        if(paramType == "s"){
-            position_obj["neurotransmitterType"] = params.neurotransmitterType
-            position_obj["connectedNeurons"] = objs[objIndex].connections
-        }
-        position_ls.push(position_obj)
-    
+        positionList.push(positionObj);
     }
-    return position_ls
-
-
+    return positionList;
 }
-function position_to_data_arr(neurons, synapses){
 
-    let neuronData = dataBuilder(neurons, "n");
-    let synapseData = dataBuilder(synapses, "s");
-    
-    let nodeData = neuronData.concat(synapseData);
-    return nodeData
-    
+/**
+ * Concatenates the neuron and synapse data arrays.
+ * @param {Array} neurons - Array of neuron objects.
+ * @param {Array} synapses - Array of synapse objects.
+ * @returns {Array} Concatenated array of position objects.
+ */
+function positionToDataArr(neurons, synapses) {
+    const neuronData = dataBuilder(neurons, "n");
+    const synapseData = dataBuilder(synapses, "s");
+    return neuronData.concat(synapseData);
 }
-function get_connection_list(synapses){
 
-    let connection_list = [];
+/**
+ * Constructs a connection list for synapses.
+ * @param {Array} synapses - Array of synapse objects.
+ * @returns {Array} List of connection objects linking neurons and synapses.
+ */
+function getConnectionList(synapses) {
+    const connectionList = [];
+    // Iterate over each synapse using a for...in loop.
+    for (let synapseIndex in synapses) {
+        const cons = synapses[synapseIndex].connections;
+        const preSynConnections = cons.pre;
+        const postSynConnections = cons.post;
+        const synapseName = "s" + String(synapseIndex);
 
-    for(let synapseIndex in synapses){
-        let cons = synapses[synapseIndex].connections
-
-        let preSynConnections = cons["pre"]
-        let postSynConnections = cons["post"]
-
-        let synapseName = "s" + String(synapseIndex);
-
+        // Create connection objects for pre-synaptic connections.
         preSynConnections.forEach(neuronIndex => {
-            let neuronName = "n" + String(neuronIndex);
-            connection_list.push({ source : neuronName, target:synapseName});
+            connectionList.push({ source: "n" + neuronIndex, target: synapseName });
         });
+        // Create connection objects for post-synaptic connections.
         postSynConnections.forEach(neuronIndex => {
-            let neuronName = "n" + String(neuronIndex);
-            connection_list.push({ source : synapseName, target:neuronName});
-
+            connectionList.push({ source: synapseName, target: "n" + neuronIndex });
         });
     }
-
-    return connection_list
+    return connectionList;
 }
 
-
-/*
-
-    SIM UPDATE FUNCTIONS
-
-*/
-
-function electrodeBuilder(electrodeChanges){
-    //apply changes from contextMenu to electrodes. NEEDS TO APPLY CHANGES TO NEURON
-    electrodes.forEach((electrode)=>{
-        if(electrodeChanges[electrode.name]){
-            //merge dicts
-
-            for(let key in electrodeChanges[electrode.name]){ 
+// ------------------------------------------------------------
+// Simulation Update Functions
+// ------------------------------------------------------------
+/**
+ * Applies electrode changes from the context menu to the current electrodes.
+ * @param {Object} electrodeChanges - An object mapping electrode names to their updated properties.
+ */
+function electrodeBuilder(electrodeChanges) {
+    // Iterate over each electrode.
+    for (let i in electrodes) {
+        const electrode = electrodes[i];
+        if (electrodeChanges[electrode.name]) {
+            // Merge the new properties into the electrode.
+            for (let key in electrodeChanges[electrode.name]) {
                 electrode[key] = electrodeChanges[electrode.name][key];
             }
-            let currentBuilder = {}
-            for(let i in electrode["connectedNeurons"]){
-                let neuronName = electrode["connectedNeurons"][i] 
-                //neuronIndex
-                currentBuilder[neuronName.slice(1)] = electrodeChanges[electrode.name]
-                
+            const currentBuilder = {};
+            // Update current for each neuron connected to this electrode.
+            for (let j in electrode.connectedNeurons) {
+                const neuronName = electrode.connectedNeurons[j];
+                currentBuilder[neuronName.slice(1)] = electrodeChanges[electrode.name];
             }
-            //console.log(currentBuilder)
-            addCurrent(currentBuilder)
-        }
-    });
-}
-
-function removeElectrode(nodeName){
-    let currentData = {currentType: "None"};
-    //remove electrode with the name nodeName from electrodes and
-    //remove current from each neuron in simulation
-    for(let electrodeIndex in electrodes){
-        let electrode = electrodes[electrodeIndex];
-
-        //find electrode in the electrode dict
-        if(electrode["name"] == nodeName){
-            //since electrode is getting removed, create dict to set all the neurons currents
-            let data = {};
-            for(let neuronNameIndex in electrode["connectedNeurons"]){
-                //set each neuron in connected neurn to no current
-                let neuronIndex = electrode["connectedNeurons"][neuronNameIndex][1];
-                data[neuronIndex] = currentData;
-            }
-
-            //send updates to server
-            addCurrent(data);
-            //remove electrode from dict
-            electrodes.splice(electrodeIndex, 1);
-
+            addCurrent(currentBuilder);
         }
     }
-
 }
-function getNeuronsInsideRect(pixelCenterCoords, width, height){
-    //could do the whole collision between circles and rectangles based on the tan line
-    //of the circle and the closest point on the rect but point neurons are easier.
-    //console.log(pixelCenterCoords)
-    
-    let electrodeBottom = pixelCenterCoords[1] + (height/2);
-    let electrodeLeft = pixelCenterCoords[0] - (width/2);
 
-    let electrodeTop = electrodeBottom - height;
-    let electrodeRight = electrodeLeft + width;
-
-    let seriesData = chart.getOption().series[1].data
-    let neuronsInElectrodes = []
-
-    for(let key in seriesData){
-
-        let datapoint = seriesData[key]
-        let dataName = datapoint.name
-
-        //only neurons
-        if(dataName[0] != "n"){
-            continue;
+/**
+ * Removes an electrode and resets current for its connected neurons.
+ * @param {string} nodeName - The name of the electrode node to remove.
+ */
+function removeElectrode(nodeName) {
+    const currentData = { currentType: "None" };
+    // Iterate over electrodes to locate the one to remove.
+    for (let electrodeIndex in electrodes) {
+        const electrode = electrodes[electrodeIndex];
+        if (electrode.name === nodeName) {
+            const data = {};
+            // For each connected neuron, set its current to "none".
+            for (let neuronIndex in electrode.connectedNeurons) {
+                const neuron = electrode.connectedNeurons[neuronIndex];
+                data[neuron[1]] = currentData;
+            }
+            addCurrent(data);
+            // Remove the electrode from the list.
+            electrodes.splice(electrodeIndex, 1);
         }
+    }
+}
 
-        let pos = datapoint.value
+/**
+ * Finds neurons whose positions (in pixels) fall within a specified rectangular region.
+ * @param {Array} pixelCenterCoords - [x, y] coordinates of the rectangle's center in pixels.
+ * @param {number} width - The width of the rectangle in pixels.
+ * @param {number} height - The height of the rectangle in pixels.
+ * @returns {Array} Array of neuron names that lie within the rectangle.
+ */
+function getNeuronsInsideRect(pixelCenterCoords, width, height) {
+    // Calculate the rectangle's boundaries.
+    const electrodeBottom = pixelCenterCoords[1] + (height / 2);
+    const electrodeLeft = pixelCenterCoords[0] - (width / 2);
+    const electrodeTop = electrodeBottom - height;
+    const electrodeRight = electrodeLeft + width;
 
-        let [pixelX, pixelY] = chart.convertToPixel({seriesIndex:0}, pos)
-        //console.log(pixelX, pixelY)
-        if (pixelX >= electrodeLeft && pixelX <= electrodeRight && 
+    const seriesData = chart.getOption().series[1].data;
+    const neuronsInElectrodes = [];
+
+    // Iterate over each data point.
+    for (let key in seriesData) {
+        const datapoint = seriesData[key];
+        const dataName = datapoint.name;
+        if (dataName[0] !== "n") continue; // Only consider neuron nodes.
+
+        const pos = datapoint.value;
+        // Convert the data-space coordinates to pixel coordinates.
+        const [pixelX, pixelY] = chart.convertToPixel({ seriesIndex: 0 }, pos);
+        // Check if the point is within the rectangular boundaries.
+        if (pixelX >= electrodeLeft && pixelX <= electrodeRight &&
             pixelY >= electrodeTop && pixelY <= electrodeBottom) {
-            neuronsInElectrodes.push(dataName)
-           // console.log("neuronInElectrode")
+            neuronsInElectrodes.push(dataName);
         }
-
     }
     return neuronsInElectrodes;
 }
-/*
 
-    GRAPHIC EVENT FUNCTIONS
-
-*/
-
-function updateElectrodesRelativeToGrid(){
-    electrodes.forEach((electrode)=>{
-        let [width, height] = electrode.dimensions
-        let [symbolWidth, symbolHeight] = convertWidthHeightPxToChart(width, height)
-        electrode.symbolSize = [symbolWidth, symbolHeight]
-    });
+// ------------------------------------------------------------
+// Graphic Event Functions
+// ------------------------------------------------------------
+/**
+ * Updates each electrode's symbol size relative to the current grid dimensions.
+ */
+function updateElectrodesRelativeToGrid() {
+    // Iterate over each electrode and update its symbolSize property.
+    for (let i in electrodes) {
+        const electrode = electrodes[i];
+        const [width, height] = electrode.dimensions;
+        const [symbolWidth, symbolHeight] = convertWidthHeightPxToChart(width, height);
+        electrode.symbolSize = [symbolWidth, symbolHeight];
+    }
 }
 
-function updateSymbolSizesRelativeToGrid(){
-    updateElectrodesRelativeToGrid()
-    console.log(symbolSizes, baselineSymbolSizes)
-    symbolSizes = 
-    {
-        n:convertSizeToChart(baselineSymbolSizes[0]),
-        s:convertSizeToChart(baselineSymbolSizes[1])
+/**
+ * Updates global symbol sizes based on the current grid scaling.
+ */
+function updateSymbolSizesRelativeToGrid() {
+    updateElectrodesRelativeToGrid();
+    // Recalculate global symbolSizes based on baseline values.
+    symbolSizes = {
+        n: convertSizeToChart(baselineSymbolSizes[0]),
+        s: convertSizeToChart(baselineSymbolSizes[1])
     };
-
-
 }
-function focusNeuron(nodeName){
-    neuronTarget = parseInt(nodeName.substring(1))
-    console.log(neuronTarget)
+
+/**
+ * Sets the target neuron based on the given node name.
+ * @param {string} nodeName - The name of the neuron node (e.g., "n5").
+ */
+function focusNeuron(nodeName) {
+    neuronTarget = parseInt(nodeName.substring(1));
 }
-function nodeClicked(params){
-    let nodeName = params["data"]["name"];
 
-    //if event is a part of the first component(main graph)
-
-    if(params["seriesIndex"] < 2){
-        switch(nodeName[0]){
-            //if electrode is clicked
+/**
+ * Handles click events on individual nodes.
+ * @param {Object} params - Event parameters provided by the chart.
+ */
+function nodeClicked(params) {
+    const nodeName = params.data.name;
+    if (params.seriesIndex < 2) {
+        switch (nodeName[0]) {
             case "e":
                 removeElectrode(nodeName);
                 break;
@@ -300,452 +380,250 @@ function nodeClicked(params){
                 focusNeuron(nodeName);
                 break;
             case "s":
-                //do synapse thing
+                // Placeholder for synapse actions.
                 break;
             default:
-                console.warn(`Warning: Unknown nodeType:${nodeName} detected`)
+                console.warn(`Warning: Unknown nodeType: ${nodeName}`);
                 break;
         }
     }
 }
-function rightClick(event){
 
-    //sets global right click x and y based on pixel position
+/**
+ * Updates the global right-click coordinates based on the event.
+ * @param {Object} event - The event object containing clientX and clientY.
+ */
+function rightClick(event) {
     rightClickX = event.event.clientX;
     rightClickY = event.event.clientY;
 }
-function nodeRightClick(event){
-    //console.log(event)
-    //catch case if non electrode node is clicked
-    if (event.name[0] != "e"){
-        return;
-    }
 
-    rightClickTarget = event.name; 
-
-    let customMenuElem = document.getElementById("customContextMenuHolder");
-    let clickPosition = event.value;
-
-    let [x, y] = [rightClickX, rightClickY];
-
-    customMenuElem.style.left = x + "px";
-    customMenuElem.style.top = y + "px";
+/**
+ * Handles right-click events on nodes (specifically electrodes).
+ * @param {Object} event - The event object from the chart.
+ */
+function nodeRightClick(event) {
+    if (event.name[0] !== "e") return;
+    rightClickTarget = event.name;
+    const customMenuElem = document.getElementById("customContextMenuHolder");
+    // Position the custom context menu at the right-click location.
+    customMenuElem.style.left = rightClickX + "px";
+    customMenuElem.style.top = rightClickY + "px";
     customMenuElem.style.display = "flex";
 }
-function convertSizeToChart(size){
-    console.log(chart)
-    let p1 = chart.convertToPixel({gridIndex: 0}, [0, 0])
-    let p2 = chart.convertToPixel({gridIndex: 0}, [size, 0])
-    let newSize = Math.abs(p2[0] - p1[0])
 
-    console.log(newSize)
-    return newSize
+/**
+ * Converts a given size from chart units to pixel units.
+ * @param {number} size - The size in chart units.
+ * @returns {number} The size in pixels.
+ */
+function convertSizeToChart(size) {
+    const p1 = chart.convertToPixel({ gridIndex: 0 }, [0, 0]);
+    const p2 = chart.convertToPixel({ gridIndex: 0 }, [size, 0]);
+    return Math.abs(p2[0] - p1[0]);
 }
-function convertWidthHeightPxToChart(width, height){
-    let p1 = chart.convertToPixel({seriesIndex: 0}, [0, 0]);
-    let p2 = chart.convertToPixel({seriesIndex: 0}, [width, height]);
 
+/**
+ * Converts width and height from chart units to pixels.
+ * @param {number} width - The width in chart units.
+ * @param {number} height - The height in chart units.
+ * @returns {Array} An array containing the width and height in pixels.
+ */
+function convertWidthHeightPxToChart(width, height) {
+    const p1 = chart.convertToPixel({ seriesIndex: 0 }, [0, 0]);
+    const p2 = chart.convertToPixel({ seriesIndex: 0 }, [width, height]);
     return [Math.abs(p2[0] - p1[0]), Math.abs(p2[1] - p1[1])];
 }
 
-function chartClicked(event){
-    if(event.target){
-        return
-    }
-    // Convert click position to chart coordinates
-    let width = Number(document.getElementById("electrode_width").value);
-    let height = Number(document.getElementById("electrode_height").value);
+/**
+ * Handles click events on the chart background (excluding nodes).
+ * @param {Object} event - The click event object.
+ */
+function chartClicked(event) {
+    // Ignore clicks on nodes.
+    if (event.target) return;
 
-    let pointInPixel = [event.offsetX, event.offsetY];
-    
-    let pointIsInGrid = chart.containPixel({ seriesIndex: 0}, pointInPixel);
-    let pixelToGrid = chart.convertFromPixel({seriesIndex: 0}, pointInPixel);
+    const width = Number(document.getElementById("electrode_width").value);
+    const height = Number(document.getElementById("electrode_height").value);
+    const pointInPixel = [event.offsetX, event.offsetY];
+    const pointIsInGrid = chart.containPixel({ seriesIndex: 0 }, pointInPixel);
+    const pixelToGrid = chart.convertFromPixel({ seriesIndex: 0 }, pointInPixel);
 
-    
     if (pointIsInGrid) {
-        
-        let [xSize, ySize] = convertWidthHeightPxToChart(width, height);
-        console.log(xSize, ySize)
-
-        //pulling data from the chart
-        let neuronsInBounds = getNeuronsInsideRect(pointInPixel, xSize, ySize)
-        //gets the electrodes position
-        //console.log("Adding");
-        let electrode = {
+        const [xSize, ySize] = convertWidthHeightPxToChart(width, height);
+        // Identify neurons within the electrode area.
+        const neuronsInBounds = getNeuronsInsideRect(pointInPixel, xSize, ySize);
+        const electrode = {
             name: `e${addedElectrodes}`,
             symbol: "rect",
-            value:[pixelToGrid[0], pixelToGrid[1]],
-            current:"none",
-            currentType:"none",
-            freq:"none",
+            value: [pixelToGrid[0], pixelToGrid[1]],
+            current: "none",
+            currentType: "none",
+            freq: "none",
             connectedNeurons: neuronsInBounds,
-            dimensions:[width, height],
-            symbolSize:[xSize, ySize],
+            dimensions: [width, height],
+            symbolSize: [xSize, ySize],
             style: { fill: "rgb(112, 112, 112)" }
-        }
-        electrodes.push(electrode)
-        //console.log(electrode)
-        addedElectrodes += 1
-        
+        };
+        electrodes.push(electrode);
+        addedElectrodes += 1;
     }
 }
-/*
 
-    GRAPHIC BUILDER FUNCTIONS
+// ------------------------------------------------------------
+// Series and Graph Builder Functions
+// ------------------------------------------------------------
+/**
+ * Constructs series for the chart based on the provided simulation data.
+ * @param {Object} simDict - The simulation data dictionary.
+ * @returns {Array} An array of series objects for the chart.
+ */
+function buildSeries(simDict) {
+    const sideGraphData = getSideGraph();
+    const neurons = simDict.neurons;
+    const synapses = simDict.synapses;
+    const electrodeChanges = getElectrodeChanges();
+    // Update electrodes with any changes from the context menu.
+    electrodeBuilder(electrodeChanges);
+    const cons = getConnectionList(synapses);
+    const posList = positionToDataArr(neurons, synapses);
 
-*/
-
-
-export function buildGraphs(simDict) {
-
-    dataQueue.enqueue(simDict)
-
-    let btn = document.getElementById("pause_button");
-    btn.addEventListener('click', pauseRender)
-
-    let chart_container = document.getElementById('chart_container')
-
-    chart_container.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-    });
-    chart = echarts.init(chart_container);
-    
-
-    chart.on('dataZoom', updateSymbolSizesRelativeToGrid);
-
-    chart.getZr().on('click',chartClicked);
-
-    chart.on('click', nodeClicked);
-
-    chart.on('contextmenu', nodeRightClick);
-    chart.getZr().on('contextmenu', rightClick);
-    var container = document.getElementById('main_graph');
-    // Compute the container's width in pixels
-    var containerWidth = container.offsetWidth;
-    // We want the left grid to be 50% of the container's width (i.e., 0.5 * containerWidth)
-    var leftGridWidth = containerWidth * 0.5;
-    var rightGraphWidth = containerWidth * 0.
-    
-
-    var option = {
-        title: [
-            { text: "Network Activity", left: "5%", top: "5%" }, // Left chart title
-            { text: "Membrane Potential", left: "60%", top: "5%" }, // Right top title
-            { text: "Input stimuli", left: "60%", top: "50%" } // Right bottom title
-        ],
-
-        // Define multiple grids (areas for sub-charts)
-        grid: [
-            {
-                left: "5%",
-                right: "45%",
-                top: "10%",
-                height: leftGridWidth + "px"  // This makes the grid square relative to the viewport width
-            },
-            {
-                left: "65%",
-                right: "5%",
-                top: "10%",
-                height: "35%"
-            },
-            {
-                left: "65%",
-                right: "5%",
-                top: "55%",
-                height: "35%"
-            }
-        ],
-
-        // Define X-Axes (One for each chart)
-        xAxis: [
-            { type: "value", gridIndex: 0, min:0, max:5}, //Left chart
-            { type: "value", gridIndex: 1, scale: true}, // Right top chart
-            { type: "value", gridIndex: 2, scale: true}  // Right bottom chart
-        ],
-
-        // Define Y-Axes (One for each chart)
-        yAxis: [
-            { type: "value", gridIndex: 0, min:0, max:5}, //left chart
-            { type: "value", gridIndex: 1}, // Right top chart
-            { type: "value", gridIndex: 2}  // Right bottom chart
-        ],
-        dataZoom: [
-            { type: 'inside', xAxisIndex: [0]},{ type: 'inside', yAxisIndex: [0]}
-        ],
-
-
-        // Define Series (Assigning Data to Different Grids)
-        tooltip: { 
-            trigger:"item",
-            formatter: function (params) {
-                //main graph
-                if (params.componentIndex < 2) {
-                    if(params.dataType === "node"){
-                        switch(params.name[0]){
-                            case "n":
-                                return `Neuron: <b>${params.name}</b><br>Position: (${params.value[0]}, ${params.value[1]})`;
-                            case "s":
-                                let connections = params.data.connectedNeurons
-                                let preConnections = connections.pre
-                                let postConnections = connections.post
-                                return `Connections: <b>Pre: ${preConnections} Post: ${postConnections}</b><br>Neurotransmitter Type: <b>${params.data.neurotransmitterType}</b>`;
-                            case "e":
-                                let neurons = params.data.connectedNeurons
-                                let currentType = params.data.currentType
-                                return `Connected Neurons: <b>${neurons} </b><br> Current Type: <b>${currentType}</b>`
-                        }
-                    
-                    
-                    } else if (params.dataType === "edge") {
-                        return `Synapse: <b>${params.data.source} → ${params.data.target}</b>`;
-                    }
-                }
-                else if (params.componentIndex == 2) {
-                    return `Membrane Potential: <b>${params.data[1].toFixed(2)}</b> (mV)` 
-                }
-                else if (params.componentIndex == 3) {
-                    return `Synaptic Current: <b>${params.data[1].toFixed(2)}</b> (µA/cm²)` 
-                }
-                else if (params.componentIndex == 4) {
-                    return `Electrode Current: <b>${params.data[1].toFixed(2)}</b> (µA/cm²)` 
-                }
-            }
-        },
-    };
-    // Apply options
-    if (chart){
-        chart.setOption(option);
-        updateSymbolSizesRelativeToGrid()
-    }else{
-        console.error("Echart instance failed to init")
-    }
-    updateGraph(simDict)
-}
-function getPositionAndConnection(simDict){
-    let neurons = simDict["neurons"]
-    let synapses = simDict["synapses"]
-
-
-    let newTime = Date.now();
-    let timeDifferencePerUpdate = newTime - curTime;
-    let updateTime = 6000; // each update is 5 seconds in sim time
-
-    
-    //dynamic number of steps based on the passed step time
-
-    let updateTimeToTimeDifferenceRatio = Math.trunc(updateTime / timeDifferencePerUpdate);
-
-
-    let electrodeChanges = getElectrodeChanges()
-    electrodeBuilder(electrodeChanges)
-
-    let cons = get_connection_list(synapses);
-    let pos_ls = position_to_data_arr(neurons, synapses);
-
-    return {connections:cons, positions:pos_ls}
-
-    
-    //why the do I have to do this, concat refused to work
-}
-
-function getSideGraph(){
-    var vs = []
-    var synapticInputs = []
-    var inputCurrents = []
-
-    for(let i in dataQueue.items){
-        let simDict = dataQueue.items[i]
-
-        let neuronData = simDict.neurons[neuronTarget]
-        
-        vs = vs.concat(neuronData.vs)
-        synapticInputs = synapticInputs.concat(neuronData.synaptic_inputs)
-        inputCurrents = inputCurrents.concat(neuronData.input_currents)
-
-    }
-    return {vs:vs, synapticInputs:synapticInputs, inputCurrents:inputCurrents}
-}
-
-function buildSeries(simDict){
-
-    //most recent second of data
-    simDict = dataQueue.items[dataQueue.length - 1]
-    
-    let sideGraphData = getSideGraph()
-
-    //console.log("Side Graph: ", sideGraphData)
-
-    let neurons = simDict["neurons"]
-    let synapses = simDict["synapses"]
-                                              
-    let electrodeChanges = getElectrodeChanges()
-    electrodeBuilder(electrodeChanges)
-
-    let cons = get_connection_list(synapses);
-    let pos_ls = position_to_data_arr(neurons, synapses);
-
-    
-    //why the do I have to do this, concat refused to work.
-
-    
-        
-    let series= [
-        {  
-            //electrode graph placed behind neuron activity
-            roam: "enabled", 
-            type: "graph", 
-
-            //positon
+    const series = [
+        {
+            // Base electrode graph (displayed as the background).
+            roam: "enabled",
+            type: "graph",
             xAxisIndex: 0,
             yAxisIndex: 0,
-            z:0,
-            zlevel:0,
-
-            //charting settings
+            z: 0,
+            zlevel: 0,
             layout: "force",
             coordinateSystem: 'cartesian2d',
-
-            //symbol style
-            symbolSize: 30, 
-            label: {
-                show: true,
-                fontSize:14 
-            }, 
-
-            //edge style
-            edgeSymbol: ['circle', 'arrow'], 
-            edgeSymbolSize: [4, 8], 
-
-            //data
+            symbolSize: 30,
+            label: { show: true, fontSize: 14 },
+            edgeSymbol: ['circle', 'arrow'],
+            edgeSymbolSize: [4, 8],
             data: electrodes,
-
         },
-        {   
-
-            roam: "enabled", 
-            //meta
-            name: "Electrodes", 
-            type: "graph", 
-
-            //positon
+        {
+            // Main graph with neurons and synapses.
+            roam: "enabled",
+            name: "Electrodes",
+            type: "graph",
             xAxisIndex: 0,
             yAxisIndex: 0,
-            z:10,
-            zlevel:0,
-
-            //charting settings
+            z: 10,
+            zlevel: 0,
             layout: "force",
             coordinateSystem: 'cartesian2d',
-
-            //symbol style
-            symbolSize: 30, 
-            label: {
-                show: true,
-                fontSize:14 
-            }, 
-
-            //edge style
-            edgeSymbol: ['circle', 'arrow'], 
-            edgeSymbolSize: [4, 8], 
-
-            //data
-            data: pos_ls,
+            symbolSize: 30,
+            label: { show: true, fontSize: 14 },
+            edgeSymbol: ['circle', 'arrow'],
+            edgeSymbolSize: [4, 8],
+            data: posList,
             links: cons,
-
-            lineStyle:{
-                color:"#000000"
-            },
-
-
+            lineStyle: { color: "#000000" },
         },
-
-        //will be the historic membrane potential graph of the "focused" neuro
-        { // Right top chart
+        { // Right top: Membrane potential chart.
             name: "Membrane Potential",
-            type: "line", data:sideGraphData.vs,
+            type: "line",
+            data: sideGraphData.vs,
             xAxisIndex: 1,
             yAxisIndex: 1,
             showSymbol: false,
-
-        }, 
-        //will be the historic input stimuli dynamics(synaptic and electrodes)
-        { // Right bottom chart
-            name: "Synaptic Dynamics", 
-            type: "line", 
-
-            lineStyle: {color: '#000000'},
-
+        },
+        { // Right bottom: Synaptic dynamics chart.
+            name: "Synaptic Dynamics",
+            type: "line",
+            lineStyle: { color: '#000000' },
             data: sideGraphData.synapticInputs,
-            xAxisIndex: 2, 
+            xAxisIndex: 2,
             yAxisIndex: 2,
             showSymbol: false,
-
-            tooltip:{
-                trigger:'axis',
-                formatter:(params) => {
-                    console.log(params)
-
+            tooltip: {
+                trigger: 'axis',
+                formatter: params => {
+                    console.log(params);
                 }
             }
         },
-        { // Right bottom chart
-            name: "Input Currents", 
-            type: "line", 
-            data: sideGraphData.inputCurrents, 
-            xAxisIndex: 2, 
+        { // Right bottom: Input currents chart.
+            name: "Input Currents",
+            type: "line",
+            data: sideGraphData.inputCurrents,
+            xAxisIndex: 2,
             yAxisIndex: 2,
             showSymbol: false
-
-        }  
-    ]
+        }
+    ];
     return series;
 }
 
-function updateFrame(){
-    if(paused){
+/**
+ * Aggregates side graph data for the currently focused neuron.
+ * @returns {Object} An object containing arrays for membrane potentials (vs), synaptic inputs, and input currents.
+ */
+function getSideGraph() {
+    let vs = [];
+    let synapticInputs = [];
+    let inputCurrents = [];
+
+    // Iterate over each simulation update stored in the queue.
+    for (let i in dataQueue.items) {
+        const simDict = dataQueue.items[i];
+        const neuronData = simDict.neurons[neuronTarget];
+        vs = vs.concat(neuronData.vs);
+        synapticInputs = synapticInputs.concat(neuronData.synaptic_inputs);
+        inputCurrents = inputCurrents.concat(neuronData.input_currents);
+    }
+    return { vs, synapticInputs, inputCurrents };
+}
+
+// ------------------------------------------------------------
+// Animation and Update Loop
+// ------------------------------------------------------------
+/**
+ * Updates the graph using the latest simulation data from the queue.
+ * Maintains a maximum queue length by dequeuing older entries.
+ */
+function updateGraph() {
+    // Retrieve the most recent simulation data from the queue.
+    let simDict = dataQueue.items[dataQueue.length - 1];
+
+    // If the queue is at maximum capacity, remove the oldest entry.
+    if (dataQueue.length === 100) {
+        dataQueue.dequeue();
+    }
+
+    // Build chart series using the current simulation state.
+    const series = buildSeries(simDict);
+
+    // Update the chart with the new series, disabling animations.
+    chart.setOption({
+        series: series,
+        animation: false,
+    });
+
+    // Schedule the next update.
+    setTimeout(() => {
+        window.requestAnimationFrame(() => updateFrame());
+    }, 50);
+}
+
+/**
+ * Animation loop: Fetches new simulation data and updates the graph.
+ */
+function updateFrame() {
+    if (paused) {
+        // When paused, limit the update rate to 30 FPS.
         setTimeout(() => {
             requestAnimationFrame(updateFrame);
-        }, 1000 / 30); //30 fps max
+        }, 1000 / 30);
         return;
     }
-    iterateSim().then(data=>{
-        dataQueue.enqueue(data)
-        updateGraph(data);
+    // Fetch new simulation data from the server.
+    iterateSim().then(data => {
+        dataQueue.enqueue(data);
+        updateGraph();
     });
-    
-    
-}
-export function updateGraph(simData){
-
-
-    //split data into equal portions of numSteps
-    //build a series with options for each step
-    //run each series as an option with an animation that fills durration
-    //halfway through the animation at the middlemost or just prior to the middlemost
-    //timestep pull the data for the next animation
-    //once the last update is called, build a new series with the new options.
-
-    //only 6 seconds of data available at any given moment
-    if(dataQueue.length === 100){
-        dataQueue.dequeue()
-    }
-    var series;
-
-    series = buildSeries(simData);    
-
-    curTime = Date.now()
-    chart.setOption({
-        series:series,
-        animation: false,
-        //animationDuration:10,
-        
-    });
-
-    setTimeout(() => {
-        window.requestAnimationFrame(updateFrame)
-
-    }, 50)
-    
-    //chart.on('finished', updateFrame)
-    
 }

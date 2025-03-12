@@ -1,122 +1,124 @@
-#main_graph{
-    width:100%;
-    height:80%;
-    background-color:rgb(255, 255, 255);
-    
+/* Main Graph Container */
+#main_graph {
+    width: 100%;
+    aspect-ratio: 16/11;
+    background-color: rgb(255, 255, 255);
 }
-#chart_container{
-    width:auto;
-    height:100%;
 
-    border-style:solid;
+/* Chart Container */
+#chart_container {
+    width: auto;
+    height: 100%;
+    border-style: solid;
     border-width: 2px;
 }
-#chart_bottom{
-    width:auto;
 
+/* Chart Bottom Section */
+#chart_bottom {
+    width: auto;
     height: 1.5em;
-
-    margin-top:4px;
-    
-    padding:2px 4px;
-    
-    display:flex;
+    padding: 2px 4px;
+    display: flex;
     justify-content: space-between;
-    align-items:center;
+    align-items: center;
+    background-color: #0AAE5E;
+}
 
+#chart_bottom > * {
+    list-style: none;
 }
-#chart_bottom>*{
-    list-style:none;
+
+/* Electrode Input Fields */
+.electrode_input {
+    width: 50px;
 }
-.electrode_input{
-    width:50px;
+
+/* Pause Button Container */
+#pause_button_container {
+    height: 100%;
+    aspect-ratio: 1;
+    position: relative;
+    box-sizing: border-box;
 }
-#chart_bottom{
-    background-color: #0AAE5E
-}
-#pause_button{
-    position:absolute;
-    left:0;
+
+/* Pause Button Base Styles */
+#pause_button {
+    position: absolute;
+    left: 0;
     top: 1.5px;
-    /* 0 height because boder makes up height and no content */
-    height: 0;
-
+    height: 0;  /* Height provided by border */
     aspect-ratio: 1;
     padding: 0;
-
-    border-width:  0.75em 0 0.75em 1.5em;
-
+    border-width: 0.75em 0 0.75em 1.5em;
     border-color: transparent transparent transparent #0d5d36;
-    box-sizing:border-box;
-
+    box-sizing: border-box;
 }
-#pause_button.play{
+
+/* Play State for Pause Button */
+#pause_button.play {
     background-color: transparent;
-    box-sizing: border-box;    
+    box-sizing: border-box;
 }
-#pause_button.pause{
-    position:absolute;
-    background-color:transparent;
-    left:0;
-    top: 1.5px;
-    /* 0 height because boder makes up height and no content */
-    height: 1.5em;
 
+/* Pause State for Pause Button */
+#pause_button.pause {
+    position: absolute;
+    background-color: transparent;
+    left: 0;
+    top: 1.5px;
+    height: 1.5em;
     aspect-ratio: 1;
     padding: 0;
-
-    border-width:0 0 0 0.75em;
-    border-color:#0d5d36;
-    border-style:double;
-
+    border-width: 0 0 0 0.75em;
+    border-color: #0d5d36;
+    border-style: double;
 }
-#pause_button_container{
-    height:100%;
-    aspect-ratio: 1;
-    position:relative;
-    box-sizing:border-box;
-}
-.overlappingMenu{
-    position:fixed;
 
+/* Left Inputs Section */
+#left_inputs {
+    height: 100%;
+}
+
+/* Custom Context Menu Holder */
+.overlappingMenu {
+    position: fixed;
     display: none;
-    flex-direction:column;
-
-    width:10%;
+    flex-direction: column;
+    width: 10%;
     background-color: rgb(19, 230, 160);
-    border-radius:5px;
-    padding:2px;
+    border-radius: 5px;
+    padding: 2px;
     box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
 }
-#customContextMenu{
-    list-style: none;
-    
-}
-.buttonHolder>button{
-    width:100%;
-    border-style:none;
-    background-color: rgb(19, 230, 160);
-    
-}
-.buttonHolder>button{
-    width:100%;
-    border-style:none;
-    background-color:transparent;
-}
-.buttonHolder>button:hover{
-    background-color: rgb(15, 205, 142);
-    cursor:pointer;
-}
-.contextText{
 
+/* Custom Context Menu List */
+#customContextMenu {
+    list-style: none;
+}
+
+/* Button Holder Styles for Context Menu */
+.buttonHolder > button {
+    width: 100%;
+    border-style: none;
+    background-color: transparent;
+}
+
+.buttonHolder > button:hover {
+    background-color: rgb(15, 205, 142);
+    cursor: pointer;
+}
+
+/* Context Text within Context Menu */
+.contextText {
     white-space: nowrap;
-    position:absolute;
-    width:fit-content;
+    position: absolute;
+    width: fit-content;
     width: -moz-fit-content;
     width: -webkit-fit-content;
-
-    display:none;
+    display: none;
 }
-.textField{
-    width:30px;
+
+/* Text Field Inputs */
+.textField {
+    width: 30px;
 }

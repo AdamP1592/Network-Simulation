@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 
 <script type="module" src="{{url_for('static', filename='graph/simulation.js') }}"></script>
@@ -16,15 +17,15 @@
 <section id="chart_bottom">
     <ul id="left_inputs">
         <li id="pause_button_container">
-            <button id="pause_button" class="play" type="button">
+            <button id="pause_button" class="play" type="button" aria-label="Pause/Play"></button>
         </li>
     </ul>
-    <ul id="left_inputs">
+    <ul id="right_inputs">
         <li>
-            Electrode Width: 
+            <label>Electrode Width: </label>
             <input id="electrode_width" class="electrode_input" type="number" value="0.75">
 
-            Electrode Height: 
+            <label>Electrode Height: </label> 
             <input id="electrode_height" class="electrode_input" type="number" value="0.75">
         </li>
     </ul>

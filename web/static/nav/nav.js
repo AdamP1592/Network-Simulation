@@ -27,15 +27,11 @@ function set_active_button(){
         button_dict[txt] = button_elem;
     });
 
-    //get current url, finds that urlname in the 
+    //get current url, finds that urlname 
     const subURL = window.location.pathname.slice(1);
-
     
     var button = button_dict[subURL];
-
-
     button.className+=" nav_pressed"
-
 
 }
 
