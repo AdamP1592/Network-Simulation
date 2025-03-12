@@ -15,6 +15,11 @@ document.addEventListener("DOMContentLoaded",setUpNetwork);
 //chart variables
 var chart;
 
+
+var baselineSymbolSizes = [.3, .25]
+
+var symbolSizes = {n:baselineSymbolSizes[0], s:baselineSymbolSizes[1]};
+
 var rightClickTarget = null;
 var neuronTarget = 0;
 
@@ -43,7 +48,6 @@ export function getTarget(){
 */
 
 
-
 export function pauseRender(){
     //branchless approach
     let switchClass = {pause:"play", play:"pause"}
@@ -62,6 +66,7 @@ export function pauseRender(){
     DATA HELPER FUNCTIONS
 
 */
+
 /**  
  * extracts params for main graph from a neuron or a synapse type
  * @param {object} object
@@ -74,7 +79,6 @@ function dataBuilder(objs, paramType){
     let target =  `n${neuronTarget}`
 
     let symbols = {n:"circle", s:"rect"};
-    let symbolSizes = {n:25, s:20};
 
     for(let objIndex in objs){
 
@@ -90,15 +94,18 @@ function dataBuilder(objs, paramType){
             let rgbColor = hsbColorRangeFinder(0, 70, params["vrest"] - 1, params["vthresh"], params["v"]);
             cssColor = rgbToCss(rgbColor);
         }
-        
-
         let position_obj = 
         {
             name:nodeName.toString(),
             value:[x, y],
             inputCurrents:"none",
             //text
-            label: {formatter:nodeName.toString(), color:"#000000"},
+            label: 
+            {
+                formatter:nodeName.toString(), 
+                color:"#000000",
+                fontSize:symbolSizes["n"] * 0.5
+            },
 
             //symbol style
             symbol: symbols[paramType],
@@ -254,8 +261,27 @@ function getNeuronsInsideRect(pixelCenterCoords, width, height){
     GRAPHIC EVENT FUNCTIONS
 
 */
+
+function updateElectrodesRelativeToGrid(){
+    electrodes.forEach((electrode)=>{
+        let [width, height] = electrode.dimensions
+        let [symbolWidth, symbolHeight] = convertWidthHeightPxToChart(width, height)
+        electrode.symbolSize = [symbolWidth, symbolHeight]
+    });
+}
+
+function updateSymbolSizesRelativeToGrid(){
+    updateElectrodesRelativeToGrid()
+    console.log(symbolSizes, baselineSymbolSizes)
+    symbolSizes = 
+    {
+        n:convertSizeToChart(baselineSymbolSizes[0]),
+        s:convertSizeToChart(baselineSymbolSizes[1])
+    };
+
+
+}
 function focusNeuron(nodeName){
-    
     neuronTarget = parseInt(nodeName.substring(1))
     console.log(neuronTarget)
 }
@@ -306,7 +332,21 @@ function nodeRightClick(event){
     customMenuElem.style.top = y + "px";
     customMenuElem.style.display = "flex";
 }
+function convertSizeToChart(size){
+    console.log(chart)
+    let p1 = chart.convertToPixel({gridIndex: 0}, [0, 0])
+    let p2 = chart.convertToPixel({gridIndex: 0}, [size, 0])
+    let newSize = Math.abs(p2[0] - p1[0])
 
+    console.log(newSize)
+    return newSize
+}
+function convertWidthHeightPxToChart(width, height){
+    let p1 = chart.convertToPixel({seriesIndex: 0}, [0, 0]);
+    let p2 = chart.convertToPixel({seriesIndex: 0}, [width, height]);
+
+    return [Math.abs(p2[0] - p1[0]), Math.abs(p2[1] - p1[1])];
+}
 
 function chartClicked(event){
     if(event.target){
@@ -317,13 +357,18 @@ function chartClicked(event){
     let height = Number(document.getElementById("electrode_height").value);
 
     let pointInPixel = [event.offsetX, event.offsetY];
+    
     let pointIsInGrid = chart.containPixel({ seriesIndex: 0}, pointInPixel);
     let pixelToGrid = chart.convertFromPixel({seriesIndex: 0}, pointInPixel);
 
     
     if (pointIsInGrid) {
+        
+        let [xSize, ySize] = convertWidthHeightPxToChart(width, height);
+        console.log(xSize, ySize)
+
         //pulling data from the chart
-        let neuronsInBounds = getNeuronsInsideRect(pointInPixel, width, height)
+        let neuronsInBounds = getNeuronsInsideRect(pointInPixel, xSize, ySize)
         //gets the electrodes position
         //console.log("Adding");
         let electrode = {
@@ -334,8 +379,8 @@ function chartClicked(event){
             currentType:"none",
             freq:"none",
             connectedNeurons: neuronsInBounds,
-
-            symbolSize:[width, height],
+            dimensions:[width, height],
+            symbolSize:[xSize, ySize],
             style: { fill: "rgb(112, 112, 112)" }
         }
         electrodes.push(electrode)
@@ -344,7 +389,6 @@ function chartClicked(event){
         
     }
 }
-
 /*
 
     GRAPHIC BUILDER FUNCTIONS
@@ -355,21 +399,33 @@ function chartClicked(event){
 export function buildGraphs(simDict) {
 
     dataQueue.enqueue(simDict)
+
     let btn = document.getElementById("pause_button");
-    btn.addEventListener('click',pauseRender)
+    btn.addEventListener('click', pauseRender)
 
     let chart_container = document.getElementById('chart_container')
-
 
     chart_container.addEventListener('contextmenu', function(e) {
         e.preventDefault();
     });
     chart = echarts.init(chart_container);
     
+
+    chart.on('dataZoom', updateSymbolSizesRelativeToGrid);
+
     chart.getZr().on('click',chartClicked);
+
     chart.on('click', nodeClicked);
+
     chart.on('contextmenu', nodeRightClick);
     chart.getZr().on('contextmenu', rightClick);
+    var container = document.getElementById('main_graph');
+    // Compute the container's width in pixels
+    var containerWidth = container.offsetWidth;
+    // We want the left grid to be 50% of the container's width (i.e., 0.5 * containerWidth)
+    var leftGridWidth = containerWidth * 0.5;
+    var rightGraphWidth = containerWidth * 0.
+    
 
     var option = {
         title: [
@@ -380,21 +436,36 @@ export function buildGraphs(simDict) {
 
         // Define multiple grids (areas for sub-charts)
         grid: [
-            { left: "5%", right: "45%", top: "10%", bottom: "10%" }, // Left (big) chart
-            { left: "65%", right: "5%", top: "10%", height: "35%" }, // Right top chart
-            { left: "65%", right: "5%", top: "55%", height: "35%" }  // Right bottom chart
+            {
+                left: "5%",
+                right: "45%",
+                top: "10%",
+                height: leftGridWidth + "px"  // This makes the grid square relative to the viewport width
+            },
+            {
+                left: "65%",
+                right: "5%",
+                top: "10%",
+                height: "35%"
+            },
+            {
+                left: "65%",
+                right: "5%",
+                top: "55%",
+                height: "35%"
+            }
         ],
 
         // Define X-Axes (One for each chart)
         xAxis: [
-            { type: "value", gridIndex: 0}, //Left chart
+            { type: "value", gridIndex: 0, min:0, max:5}, //Left chart
             { type: "value", gridIndex: 1, scale: true}, // Right top chart
             { type: "value", gridIndex: 2, scale: true}  // Right bottom chart
         ],
 
         // Define Y-Axes (One for each chart)
         yAxis: [
-            { type: "value", gridIndex: 0}, //left chart
+            { type: "value", gridIndex: 0, min:0, max:5}, //left chart
             { type: "value", gridIndex: 1}, // Right top chart
             { type: "value", gridIndex: 2}  // Right bottom chart
         ],
@@ -440,11 +511,11 @@ export function buildGraphs(simDict) {
                 }
             }
         },
-        series:buildSeries(simDict),
     };
     // Apply options
     if (chart){
         chart.setOption(option);
+        updateSymbolSizesRelativeToGrid()
     }else{
         console.error("Echart instance failed to init")
     }
@@ -494,6 +565,7 @@ function getSideGraph(){
     }
     return {vs:vs, synapticInputs:synapticInputs, inputCurrents:inputCurrents}
 }
+
 function buildSeries(simDict){
 
     //most recent second of data
@@ -505,20 +577,7 @@ function buildSeries(simDict){
 
     let neurons = simDict["neurons"]
     let synapses = simDict["synapses"]
-
-
-    let newTime = Date.now();
-    let timeDifferencePerUpdate = newTime - curTime;
-    let updateTime = 6000; // each update is 5 seconds in sim time
-
-    
-    //dynamic number of steps based on the passed step time
-
-    let updateTimeToTimeDifferenceRatio = Math.trunc(updateTime / timeDifferencePerUpdate);
-
-    let minSeries = 5; // 1 update every second
-    let maxSeries = 50; //5000 seconds means once every 250 ms
-
+                                              
     let electrodeChanges = getElectrodeChanges()
     electrodeBuilder(electrodeChanges)
 
