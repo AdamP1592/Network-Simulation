@@ -8,6 +8,7 @@ A network simulation project modeling a network of neurons with stimulation. Thi
 
 - [Overview](#overview)
 - [Neuron Model](#neuron-model)
+- [Synapse Model](#Synapse-model)
 - [Synapse Generator](#synapse-generator)
 - [Backend API](#backend-api)
 - [Installation](#installation)
@@ -20,8 +21,9 @@ A network simulation project modeling a network of neurons with stimulation. Thi
 
 This project simulates a network of neurons using a Hodgkin–Huxley model with dynamic synapses. The core components include:
 
-- **Biophysical Neuron Model:** Implements ion-channel dynamics and membrane potential updates using the Hodgkin–Huxley framework.
-- **Dynamic Synapses:** Uses computational geometry to determine connectivity based on the overlap of axonal and dendritic projections.
+- **Biophysical Neuron Model:** Implements ion-channel dynamics and membrane potential updates using the Hodgkin–Huxley framework for corticospinal neurons.
+- **Dynamic Synapses:** Uses computational geometry to determine connectivity based on the overlap of axonal and dendritic projections. For activity, uses Tsodyks-Markram synapses
+with corticospinal synapse parameters
 - **Flask Backend:** Provides REST API endpoints for simulation initialization, iteration, and current stimulation.
 - **Webpage Interface:** The backend API serves data to a webpage that displays the simulation results.
 
@@ -81,6 +83,12 @@ This project simulates a network of neurons using a Hodgkin–Huxley model with 
 ```
 
 ---
+## Synapse Model
+**Description:**  
+The Tsodyks-Markram synapse model simulates short-term synaptic plasticity by dynamically adjusting synaptic efficacy. It does so by tracking the fraction of available synaptic resources (`r`) and the utilization of these resources (`u`). The model uses these variables to compute the effective synaptic conductance (`g_syn`), which modulates the post-synaptic current. This approach captures both the depression (resource depletion) and facilitation (increased utilization) effects observed in biological synapses.
+
+
+
 
 ## Synapse Generator
 
@@ -90,7 +98,7 @@ The synapse generator uses computational geometry to model connectivity:
   Neuronal projections (axonal and dendritic) are modeled as semicircular polygons.
   
 - **Connectivity Determination:**  
-  Overlap between an axonal polygon from one neuron and a dendritic polygon from another produces a synapse (a `connection` object). Nested intersections are computed recursively.
+  Overlap area between an axonal polygon from one neuron and a dendritic polygon from another produces the probabability of a synaptic connection (a `connection` object). Nested intersections are computed recursively.
   
 - **Duplicate Removal:**  
   Duplicate connection objects are removed using the `remove_duplicate_intersections` function.

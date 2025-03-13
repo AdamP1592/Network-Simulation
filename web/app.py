@@ -1,6 +1,5 @@
 from flask import Flask, request, render_template, redirect, jsonify
 import sys, os
-from cachetools import TTLCache
 
 # Set up path for driver import.
 current = os.path.dirname(os.path.realpath(__file__))
