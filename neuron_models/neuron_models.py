@@ -264,9 +264,13 @@ class hodgkin_huxley(neuron):
         
         :return: Dictionary with keys 'params' and 'gating_params'.
         """
+        input_current_type = self.input_current_type.current_type
+        input_current_params = self.input_current_type.get_params()
+        
         params = {}
         neural_params = {}
         gating_params = {}
+        
         gating_variables = {'n': self.n_gate, 'm': self.m_gate, 'h': self.h_gate}
 
         neural_params['gk'] = self.gK 
@@ -275,16 +279,21 @@ class hodgkin_huxley(neuron):
         neural_params['ek'] = self.eK
         neural_params['ena'] = self.eNa
         neural_params['eleak'] = self.eLeak
+
         neural_params['vrest'] = self.resting_potential
         neural_params['vthresh'] = self.action_potential_threshold
         neural_params["v"] = self.v
         neural_params['c'] = self.membrane_cap
+
         neural_params["x"] = self.x
         neural_params["y"] = self.y
+
         neural_params['ik'] = self.i_k
         neural_params['ina'] = self.i_na
         neural_params['ileak'] = self.i_leak
         neural_params['isyn'] = self.i_syn
+
+        neural_params["current"] = [input_current_type, input_current_params]
 
         for key in gating_variables:
             current_gate = gating_variables[key]
@@ -302,8 +311,10 @@ class hodgkin_huxley(neuron):
         Sets the input current function to return zero current.
         """
         from neuron_models.input_currents import input_current
-        current = input_current()
-        self.input_current_func = current.get_current
+        self.input_current_type = input_current()
+
+        
+        self.input_current_func = self.input_current_type.get_current
 
     def set_sin_current(self, freq, amplitude):
         """
@@ -313,8 +324,8 @@ class hodgkin_huxley(neuron):
         :param amplitude: Amplitude of the current.
         """
         from neuron_models.input_currents import sin_current
-        current = sin_current(self.dt, [amplitude, freq])
-        self.input_current_func = current.get_current
+        self.input_current_type = sin_current(self.dt, [amplitude, freq])
+        self.input_current_func = self.input_current_type.get_current
 
     def set_square_current(self, freq, amplitude):
         """
@@ -324,8 +335,8 @@ class hodgkin_huxley(neuron):
         :param amplitude: Amplitude of the current.
         """
         from neuron_models.input_currents import square_current
-        current = square_current(self.dt, [amplitude, freq])
-        self.input_current_func = current.get_current
+        self.input_current_type = square_current(self.dt, [amplitude, freq])
+        self.input_current_func = self.input_current_type.get_current
 
     def set_const_current(self, input_current_value):
         """
@@ -334,8 +345,8 @@ class hodgkin_huxley(neuron):
         :param input_current_value: The constant current value.
         """
         from neuron_models.input_currents import constant_current
-        current = constant_current(input_current_value)
-        self.input_current_func = current.get_current
+        self.input_current_type = constant_current(input_current_value)
+        self.input_current_func = self.input_current_type.get_current
 
     def __str__(self) -> str:
         """

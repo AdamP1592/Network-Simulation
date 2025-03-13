@@ -9,6 +9,7 @@ class constant_current:
         :param i: The constant current value.
         """
         self.i = i
+        self.current_type = "constant_current"
 
     def get_current(self, t):
         """
@@ -18,6 +19,9 @@ class constant_current:
         :return: The constant current value.
         """
         return self.i
+    
+    def get_params(self):
+        return [self.i]
 
 
 class input_current:
@@ -31,6 +35,7 @@ class input_current:
         
         :param params: (Optional) A list of parameters for the input current.
         """
+        self.current_type = "no_current"
         if params is None:
             params = []
         self.needed_params = []
@@ -47,7 +52,8 @@ class input_current:
         :return: 0.
         """
         return 0
-
+    def get_params(self):
+        return self.params
     def set_params(self, params=None):
         """
         Sets the parameters for the input current.
@@ -104,7 +110,8 @@ class wave_current:
             params = [0, 0]
         self.set_amplitude(params[0])
         self.set_frequency(params[1])
-
+    def get_params(self):
+        return [self.amplitude, self.frequency]
 
 class square_current(wave_current):
     """
@@ -117,6 +124,7 @@ class square_current(wave_current):
         :param dt: Time step (seconds).
         :param params: (Optional) A list [amplitude, frequency]. Defaults to [0, 0.0001].
         """
+        self.current_type = "square_current"
         if params is None:
             params = [0, 0.0001]
         # Define parameter ranges and steps (could be used for UI scaling).
@@ -140,7 +148,6 @@ class square_current(wave_current):
         # Returns amplitude if in the first half of the period, else 0.
         return self.amplitude * (current_period_time < (period / 2))
 
-
 class sin_current(wave_current):
     """
     Represents a sine wave current input.
@@ -152,6 +159,8 @@ class sin_current(wave_current):
         :param dt: Time step (seconds).
         :param params: (Optional) A list [amplitude, frequency]. Defaults to [0, 0].
         """
+
+        self.current_type = "sin_current"
         if params is None:
             params = [0, 0]
         self.param_value_ranges = [[0, 50], [0, 1]]
@@ -172,3 +181,4 @@ class sin_current(wave_current):
         import math
         # math.sin() returns values in [-1, 1]; shifting by amplitude yields a range [0, 2*amplitude]
         return self.amplitude * math.sin(math.pi * t * self.frequency) + self.amplitude
+    

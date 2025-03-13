@@ -1,5 +1,5 @@
-from flask import Flask, request, render_template, redirect, jsonify
-import sys, os
+from flask import Flask, request, render_template, redirect, jsonify, make_response
+import sys, os, uuid, time
 
 # Set up path for driver import.
 current = os.path.dirname(os.path.realpath(__file__))
@@ -9,7 +9,7 @@ sys.path.append(parent)
 import driver
 
 # Global simulation instance (for now, limited to one user).
-sim = None
+sim_instances = {}
 
 app = Flask(__name__)
 
@@ -45,7 +45,10 @@ def iterate_sim():
     Iterates the simulation by running a small number of steps (100ms worth)
     and returns a JSON representation of the updated simulation state.
     """
-    global sim
+    
+    username = request.cookies.get("username")
+    sim = sim_instances[username]["sim"]
+    sim_instances[username]["last_interaction"] = time.time()
     try:
         if sim is None:
             raise ValueError("Simulation not initialized")
@@ -75,7 +78,9 @@ def set_current():
     Receives current stimulation parameters from the client, applies
     them to the corresponding neurons, and returns the updated simulation state.
     """
-    global sim
+    username = request.cookies.get("username")
+    sim = sim_instances[username]["sim"]
+    sim_instances[username]["last_interaction"] = time.time()
     try:
         if sim is None:
             raise ValueError("Simulation not initialized")
@@ -113,7 +118,6 @@ def setup_sim():
     Initializes the simulation with the specified number of neurons and 
     culture dimensions. Returns the initial simulation state as JSON.
     """
-    global sim
     try:
         data = request.get_json()
         num_neurons = 0
@@ -133,14 +137,20 @@ def setup_sim():
         if num_neurons_err:
             num_neurons = 1
             
-            
-
+    
         culture_dimensions = data["dimensions"]
 
         sim = driver.create_sim(num_neurons,
                                 float(culture_dimensions["x"]),
                                 float(culture_dimensions["y"]))
-        return jsonify(sim.generate_model_dict())
+        
+        resp = make_response(jsonify(sim.generate_model_dict()))
+
+        user = str(uuid.uuid4())
+        sim_instances[user] = {"sim":sim, "last_interaction": time.time()}
+        resp.set_cookie("username", user)
+
+        return resp
     except Exception as e:
         app.logger.error("Error setting up simulation: %s", e)
         return jsonify({"error": str(e)}), 500
@@ -148,6 +158,19 @@ def setup_sim():
 @app.route("/home")
 def home():
     """Returns the home page by injecting the home template into the background."""
+    print(sim_instances)
+    for key in sim_instances:
+        #clean up all old instances when home page is loaded 
+        
+        last_interaction = sim_instances[key]["last_interaction"]
+        cur_time = time.time()
+
+        elapsed_time = cur_time - last_interaction
+        elapsed_minutes = elapsed_time/60
+
+        if elapsed_minutes > 10:
+            sim_instances[key] = {}
+        
     try:
         return render_template("background.html", page_name="home.html")
     except Exception as e:

@@ -158,6 +158,7 @@ class simulation:
                     vs[j].append([self.t, self.neuron_models[j].v])
                     input_currents[j].append([self.t, self.neuron_models[j].input_current])
                     synaptic_inputs[j].append([self.t, -1 * self.neuron_models[j].i_syn])
+                    
                 self.neuron_models[j].update()
             # Update each synapse.
             for j in range(len(self.synapses)):
@@ -290,9 +291,24 @@ class simulation:
         neuron.h_gate.state = neuron_gate_params["h_state"]
         neuron.h_gate.alpha = neuron_gate_params["h_alpha"]
         neuron.h_gate.beta = neuron_gate_params["h_beta"]
+
+        
         
         neuron.x, neuron.y = neuron_params["x"], neuron_params["y"]
-        neuron.set_no_current()
+        current_type = neuron_params["current"][0]
+        current_params = neuron_params["current"][1]
+        
+        match current_type:
+            case "sin_current":
+                neuron.set_sin_current(current_params[0], current_params[1])
+            case "square_current":
+                neuron.set_square_current(current_params[0], current_params[1])
+                
+            case "constant_current":
+                neuron.set_const_current(current_params[0])
+            case _:
+                neuron.set_no_current()
+
         self.input_currents.append([])
         self.neuron_models.append(neuron)
         self.setup_vs()
@@ -314,11 +330,12 @@ class simulation:
         dt = network_params["dt"]
         t = network_params["t"]
 
+        self.setup_sim(0, dt)
         self.t = t
-        self.dt = dt
+       
 
         # Initialize the simulation with zero neurons; models will be added below.
-        self.setup_sim(0, dt)
+        
         
         is_json = False
         for i in range(network_params["num_neurons"]):
@@ -331,10 +348,10 @@ class simulation:
             if is_json:
                 i = str(i)
             selected_params = neural_params[i]
-            neuron_params = selected_params["neuron_params"]
+            neuron_params = selected_params["params"]
             gate_params = selected_params["gating_params"]
 
-            self.__setup_old_neuron_from_dict(neuron_params, gate_params, t, dt)
+            self.__setup_old_neuron_from_dict(neuron_params, gate_params, self.t, dt)
             self.num_neurons += 1
 
         for syn_ind in synapse_params:
@@ -343,11 +360,12 @@ class simulation:
             syn_params = current_syn["params"]
             syn_connections = current_syn["connections"]
 
-            pre_cons = syn_connections["pre"]
-            post_cons = syn_connections["post"]
+            pre_con_indexes = syn_connections["pre"]
+            post_con_indexes = syn_connections["post"]
 
-            self.create_synapse(pre_cons, post_cons, syn_params)
-            self.synapses[-1].set_state(syn_state)
+            self.create_synapse(pre_con_indexes, post_con_indexes)
+
+            self.synapses[-1].setup_old_activation_params(current_syn)
     
     # -------------------------------------------------------------------------
     # Output Functions
@@ -363,6 +381,7 @@ class simulation:
         for i in range(len(self.neuron_models)):
             neuron_params = self.neuron_models[i].get_params()
             neurons[i] = neuron_params
+            
         
         for i in range(len(self.synapses)):
             synapses[i] = self.synapses[i].get_params()

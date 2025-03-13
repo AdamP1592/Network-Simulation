@@ -84,7 +84,8 @@ class tsodyks_markram_synapse:
                 "r_past": self.r_past,
                 "u": self.u,
                 "u_past": self.u_past,
-                "t": self.t
+                "t": self.t,
+                "dt": self.dt
             },
             "params": {
                 "g_syn": self.g_syn,
@@ -111,16 +112,32 @@ class tsodyks_markram_synapse:
         
         :param params: Dictionary with keys for tau_recovery, tau_facilitation, u_max, e, g_max, and g_syn.
         """
+
+        
         self.action_potential_thresholds = []
         for neuron in self.pre_synaptic_neurons:
             self.action_potential_thresholds.append(neuron.action_potential_threshold)
 
-        self.tau_r = params["tau_recovery"]
-        self.tau_f = params["tau_facilitation"]
-        self.u_max = params["u_max"]
-        self.reversal_potential = params["e"]
-        self.g_max = params["g_max"]
-        self.g_syn = params["g_syn"]
+        state = params["state"]
+
+        self.r = state["r"]
+        self.r_past = state["r_past"]
+        self.u = state["u"]
+        self.u_past = state["u_past"]
+
+        self.t = state["t"]
+        self.dt = state["dt"]
+
+        synapse_params = params["params"]
+        
+        self.tau_r = synapse_params["tau_recovery"]
+        self.tau_f = synapse_params["tau_facilitation"]
+        self.u_max = synapse_params["u_max"]
+        self.reversal_potential = synapse_params["e"]
+        self.g_max = synapse_params["g_max"]
+        self.g_syn = synapse_params["g_syn"]
+        self.x = synapse_params["x"]
+        self.y = synapse_params["y"]
     
     def setup_activation_params(self, params):
         """

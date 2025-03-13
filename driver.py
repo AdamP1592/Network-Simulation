@@ -99,44 +99,114 @@ def store_sim(sim):
     except Exception as e:
         raise IOError("Error writing simulation JSON file: " + str(e))
 
+def set_sim_current(sim, neuron_index, neuron_stim_type, stim_params):
+    # Create a simulation instance and restore state from the dictionary.
+    
+    neuron = sim.neuron_models[neuron_index]
+
+    if neuron_stim_type == "Square":
+        neuron.set_square_current(stim_params["freq"], stim_params["maxCurrent"])
+    elif neuron_stim_type == "Sin":
+        neuron.set_sin_current(stim_params["freq"], stim_params["maxCurrent"]/2)
+    elif neuron_stim_type == "Constant":
+        neuron.set_const_current(stim_params["maxCurrent"])
+    elif neuron_stim_type == "None":
+        neuron.set_no_current()
+    else:
+        print(f"Unknown stimulation type: {neuron_stim_type}")
+
+def set_sim_dict_currents(sim_dict, data):
+
+    network_dict = sim_dict["network"]
+    dt = network_dict["dt"]
+    
+    sim = simulation(0, dt)
+    try:
+        sim.setup_old_instance_from_dict(sim_dict)
+    except Exception as e:
+        raise RuntimeError("Error setting up simulation from dictionary: " + str(e))
+    
+    for neuron_index in data:
+        stim_params = data[neuron_index]
+        neuron_stim_type = stim_params["currentType"]
+        neuron_index_int = int(neuron_index)
+
+        set_sim_current(sim, neuron_index_int, neuron_stim_type, stim_params)
+        print(f"Applying stimulation: {stim_params}")
+
+    return sim.generate_model_dict()
 
 def iterate_sim(sim_dict, duration):
+    print(sim_dict)
     """
     Recreates a simulation instance from a dictionary and iterates it for a given duration.
     
     :param sim_dict: The simulation dictionary.
     :param duration: Duration (in seconds) to iterate the simulation.
     """
-    try:
-        network_dict = sim_dict["network"]
-        dt = network_dict["dt"]
-    except KeyError as e:
-        raise KeyError("Missing key in simulation dictionary: " + str(e))
+    dt = 0.0005
+    network_dict = sim_dict["network"]
+    dt = network_dict["dt"]
+
 
     # Create a simulation instance and restore state from the dictionary.
-    sim = simulation(0, 0)
+    sim = simulation(0, dt)
     try:
         sim.setup_old_instance_from_dict(sim_dict)
     except Exception as e:
         raise RuntimeError("Error setting up simulation from dictionary: " + str(e))
 
     num_steps = int(duration / dt)
-    sim.iterate(num_steps)
+    graphing_params = sim.iterate(num_steps)
+    
+    print(graphing_params)
+    vs = graphing_params["vs"]
+    input_currents = graphing_params["input_currents"]
+    synaptic_inputs = graphing_params["synaptic_inputs"]
+
+    sim_dict = sim.generate_model_dict()
+    # Update each neuron's data.
+    for i in range(sim.num_neurons):
+        sim_dict["neurons"][i]["vs"] = vs[i]
+        sim_dict["neurons"][i]["input_currents"] = input_currents[i]
+        sim_dict["neurons"][i]["synaptic_inputs"] = synaptic_inputs[i]
 
 
+    
+    return sim_dict
+
+def print_sim_dict(sim_dict):
+    print(sim_dict)
+    """
+    for key in sim_dict:
+        for paramKey in sim_dict[key]:
+            print(sim_dict[key][paramKey])
+            
+    """
 if __name__ == '__main__':
-    try:
-        # Create a minimal simulation instance for testing.
-        sim = create_sim(1, 0, 0)
-        print("Sim Created")
+    # Create a minimal simulation instance for testing.
+    sim = create_sim(2, .2 , .2)
+    print("Sim Created")
+    
+    # Set a sine current on the first neuron.
+    
+    # Run simulation for 100 steps and print voltage data.
+    sim_dict = sim.generate_model_dict()
+
+    print_sim_dict(sim_dict)
+
+    print("\n\n")
+
+    new_dict = set_sim_dict_currents(sim_dict,{'0': {'currentType': 'Sin', 'freq': 0.5, 'maxCurrent': 10}})
+    print(new_dict)
+
+    print("\n\n")
+    new_sim = iterate_sim(new_dict, 0.1)
+
+
+
+
         
-        # Set a sine current on the first neuron.
-        sim.neuron_models[0].set_sin_current(0.5, 50)
+
+
         
-        # Run simulation for 100 steps and print voltage data.
-        params = sim.iterate(100)
-        vs = params["vs"]
-        for voltage in vs:
-            print(voltage)
-    except Exception as e:
-        print("Error during simulation:", e)
