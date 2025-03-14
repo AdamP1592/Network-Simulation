@@ -246,11 +246,13 @@ $$
 the axon and dendrite fields are defined as semicircular polygons.
 
 **Axon Polygon $A_i$:**
+
 $$
 A_i = \left\{ \left(x_i + r_a \cos \theta,\; y_i + r_a \sin \theta\right) \,\bigg|\, \theta \in [\theta_{a1,i},\, \theta_{a2,i}] \right\} \cup \{(x_i, y_i)\}
 $$
 
 **Dendrite Polygon $D_i$:**
+
 $$
 D_i = \left\{ \left(x_i + r_d \cos \theta,\; y_i + r_d \sin \theta\right) \,\bigg|\, \theta \in [\theta_{d1,i},\, \theta_{d2,i}] \right\} \cup \{(x_i, y_i)\}
 $$
@@ -258,36 +260,41 @@ $$
 ### Synapse Generator Equations
 
 For neurons $i$ and $j$ ($i \neq j$), define the intersection of the axon polygon of neuron $i$ and the dendrite polygon of neuron $j$ as:
+
 $$
 I_{ij} = A_i \cap D_j
 $$
 
 The area of the intersection is given by:
+
 $$
 A_{ij} = \int_{I_{ij}} dA
 $$
 
 The centroid of the intersection, representing the synapse's location, is:
+
 $$
 C_{ij} = \left( \frac{1}{A_{ij}} \int_{I_{ij}} x\, dA,\quad \frac{1}{A_{ij}} \int_{I_{ij}} y\, dA \right)
 $$
 
 The probability of forming a synaptic connection is then modeled as:
+
 $$
 P_{ij} = 1 - \exp\left(-\alpha \, A_{ij}\right)
 $$
+
 where:
 - $\alpha$ is a scaling parameter determining how rapidly the connection probability approaches 1 as the overlap area increases.
 
 ### Recursive Intersection Analysis (Optional)
 
 For cases where further refinement is desired, an existing intersection $I$ may be intersected with an additional neuron polygon $P_k$ (with $k \notin \{i,j\}$):
+
 $$
 I' = I \cap P_k
 $$
+
 provided that $I' \neq \varnothing$. Duplicate connections, identified by identical sets of pre-synaptic and post-synaptic neurons, can then be merged.
-
-
 
 **Usage Example:**  
 ```python
