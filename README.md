@@ -17,7 +17,9 @@ You can try out the demo [here](https://adamp1592.pythonanywhere.com/home)!
 - [Backend API](#backend-api)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Conclusion and References](#conclusion)
 - [Future Enhancements](#future-enhancements)
+
 
 ---
 
@@ -363,18 +365,18 @@ The Flask backend exposes several endpoints to manage the simulation:
 
 This project demonstrates the integration of detailed biophysical neuron models, dynamic synapse simulation, and computational geometry to generate realistic neural network connectivity. By combining the Hodgkin–Huxley framework with Tsodyks–Markram dynamic synapses and a custom synapse generator, the simulation provides insights into both the electrophysiological behavior and the structural connectivity of neuronal networks. The modular design also paves the way for future enhancements, including the incorporation of growth cone dynamics and multi-user simulation capabilities.
 
-## References
+### References
 
 - Hodgkin, A. L., & Huxley, A. F. (1952). A quantitative description of membrane current and its application to conduction and excitation in nerve. *The Journal of Physiology, 117*(4), 500–544.
 - Tsodyks, M., & Markram, H. (1997). The neural code between neocortical pyramidal neurons depends on neurotransmitter release probability. *Proceedings of the National Academy of Sciences, 94*(2), 719–723.
 - Mainen, Z. F., & Sejnowski, T. J. (1996). Influence of dendritic structure on firing pattern in model neocortical neurons. *Nature, 382*(6589), 363–366.
 - Barakat, A., Hojjati, S. M., Moayeri, N. A., et al. (2016). Nano structures via laser interference patterning for guided cell growth of neuronal cells. *Journal of Nanotechnology in Medicine, 12*(4), 345–356. DOI: [10.1234/jnm.2016.4567]
 
-## Acknowledgments
+### Acknowledgments
 
 We extend our gratitude to the researchers and developers whose pioneering work in computational neuroscience and neuro-engineering has inspired and enabled this project. Special thanks to the communities supporting open-source development in Python, Flask, and scientific computing.
 
-## License
+### License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
