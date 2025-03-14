@@ -66,21 +66,21 @@ Where:
 
 - **Sodium Current:**
 
-  $$
-  I_{Na} = g_{Na} \cdot m^3 \cdot h \cdot (V - E_{Na})
-  $$
+$$
+I_{Na} = g_{Na} \cdot m^3 \cdot h \cdot (V - E_{Na})
+$$
 
 - **Potassium Current:**
 
-  $$
-  I_K = g_K \cdot n^4 \cdot (V - E_K)
-  $$
+$$
+I_K = g_K \cdot n^4 \cdot (V - E_K)
+$$
 
 - **Leak Current:**
 
-  $$
-  I_L = g_L \cdot (V - E_L)
-  $$
+$$
+I_L = g_L \cdot (V - E_L)
+$$
 
 ### Gating Variables
 
