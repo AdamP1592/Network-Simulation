@@ -1,10 +1,5 @@
 from flask import Flask, request, render_template, redirect, jsonify, make_response
-import sys, os, uuid, time
-
-# Set up path for driver import.
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
+import uuid, time
 
 import driver
 
