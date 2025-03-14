@@ -113,6 +113,9 @@ def setup_sim():
     Initializes the simulation with the specified number of neurons and 
     culture dimensions. Returns the initial simulation state as JSON.
     """
+
+    #only necessary due to synapse generation
+    max_neurons = 25
     try:
         data = request.get_json()
         num_neurons = 0
@@ -122,6 +125,7 @@ def setup_sim():
         num_neurons_err = False
         try:
             num_neurons = int(data["numNeurons"]) 
+            num_neurons = min(num_neurons, max_neurons)
             if num_neurons <= 0:
                 num_neurons_err = True
             
