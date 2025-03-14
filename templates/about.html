@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>This is my hobby.</title>
-    <link rel="stylesheet" href="./static/about/about.css">
+    <link rel="stylesheet" href="{{url_for('static', filename='about/about.css') }}">
 </head>
 <body>
-    <h1>This is my hobby.</h1>
+    <h1>Welcome to my corticospinal neuron simulation</h1>
+    
+    <h4>This is my hobby.</h4>
 
     <p>
         I am a software engineer with a fascination with biological systems.<br>
@@ -19,7 +21,7 @@
             This is based on <span class="scientific">Mainen & Sejnowski's 1996</span> paper 
             <span class="scientific">"Influence of dendritic structure on firing pattern in model neocortical neurons."</span>
         </h4>
-        <img src="./static/about/images/hh-main-equation.png">
+        <img src="{{url_for('static', filename='about/images/hh-main-equation.PNG') }}">
         <p>
             <table>
                 <tr>
@@ -28,10 +30,10 @@
                 </tr>
                 <tr>
                     <td>
-                        <img src="./static/about/images/hh-gating.png">
+                        <img src="{{url_for('static', filename='about/images/hh-gating.PNG') }}">
                     </td>
                     <td>
-                        <img src="./static/about/images/hh-constants.png">
+                        <img src="{{url_for('static', filename='about/images/hh-constants.PNG') }}">
                     </td>
                 </tr>
             </table>
@@ -53,10 +55,10 @@
                 </tr>
                 <tr>
                     <td>
-                        <img src="./static/about/images/tsodyks-main.png">
+                        <img src="{{url_for('static', filename='about/images/tsodyks-main.PNG') }}">
                     </td>
                     <td>
-                        <img src="./static/about/images/tsodyks-constants.png">
+                        <img src="{{url_for('static', filename='about/images/tsodyks-constants.PNG') }}">
                     </td>
                 </tr>
             </table>
@@ -78,10 +80,10 @@
                 </tr>
                 <tr>
                     <td>
-                        <img src="./static/about/images/connection-Axon-poly.png">
+                        <img src="{{url_for('static', filename='about/images/connection-Axon-poly.PNG') }}">
                     </td>
                     <td>
-                        <img src='./static/about/images/connection_dendrite_poly.png'>
+                        <img src="{{url_for('static', filename='about/images/connection_dendrite_poly.PNG') }}">
                     </td>
                 </tr>
             </table>
@@ -100,7 +102,7 @@
             The connection is probabilistic, where the area of overlap between one neuron's axonal cones and another neuron's dendritic cones<br>
             determines the probability of connection.
         </h5>
-        <img src="./static/about/images/probabilistic-connection.png">
+        <img src="{{url_for('static', filename='about/images/probabilistic-connection.PNG') }}">
         <p>
             For the purposes of this demo, the area of alignment necessary for the probability to reach 1 is arbitrarily small.
         </p>
@@ -109,7 +111,7 @@
         <h5>
             The geometric properties of these synapses are relatively simple.
         </h5>
-        <img src="./static/about/images/connection-area-and-position.png">
+        <img src="{{url_for('static', filename='about/images/connection-area-and-position.PNG') }}">
         <p>
             The centroid of the overlap is used to determine the x, y position of the synapse,<br>
             since the most likely place of connection is at the center of the synapse.
