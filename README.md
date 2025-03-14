@@ -250,13 +250,13 @@ the axon and dendrite fields are defined as semicircular polygons.
 **Axon Polygon $A_i$:**
 
 $$
-A_i = { \left(x_i + r_a \cos \theta,\; y_i + r_a \sin \theta\right) \,\bigg|\, \theta \in [\theta_{a1,i},\, \theta_{a2,i}] \right} \cup \{(x_i, y_i)\}
+A_i = { (x_i + r_a \cos \theta,\; y_i + r_a \sin \theta) \,\bigg|\, \theta \in [\theta_{a1,i},\, \theta_{a2,i}] } \cup \{(x_i, y_i)\}
 $$
 
 **Dendrite Polygon $D_i$:**
 
 $$
-D_i = { \left(x_i + r_d \cos \theta,\; y_i + r_d \sin \theta\right) \,\bigg|\, \theta \in [\theta_{d1,i},\, \theta_{d2,i}] \right} \cup \{(x_i, y_i)\}
+D_i = { (x_i + r_d \cos \theta,\; y_i + r_d \sin \theta) \,\bigg|\, \theta \in [\theta_{d1,i},\, \theta_{d2,i}] } \cup \{(x_i, y_i)\}
 $$
 
 ### Synapse Generator Equations
