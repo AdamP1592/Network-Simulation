@@ -87,15 +87,15 @@ Where:
 The gating variables \(m\), \(h\), and \(n\) follow first-order kinetics:
 
 $$
-\frac{dm}{dt} = \alpha_m(V) \, (1-m) - \beta_m(V) \, m
+\frac{dm}{dt} = \alpha_m(V) \, (1-m) - \beta_m(V) \ 
 $$
 
 $$
-\frac{dh}{dt} = \alpha_h(V) \, (1-h) - \beta_h(V) \, h
+\frac{dh}{dt} = \alpha_h(V) \, (1-h) - \beta_h(V) \
 $$
 
 $$
-\frac{dn}{dt} = \alpha_n(V) \, (1-n) - \beta_n(V) \, n
+\frac{dn}{dt} = \alpha_n(V) \, (1-n) - \beta_n(V) \
 $$
 
 ### Example Rate Constants
