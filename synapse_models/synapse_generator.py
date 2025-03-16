@@ -9,6 +9,8 @@ from shapely import centroid, area
 axon_polys = []
 dendrite_polys = []
 
+alpha = 5# scaling parameter for probabilistic connection
+
 
 class connection:
     """
@@ -94,7 +96,7 @@ def generate_semicircle_polygon(center: Point, radius: float, theta1: float, the
     return Polygon(points)
 
 
-def plot_point(ax, point: Point, color: str, alpha: float = 1, annotation: str = ""):
+def plot_point(ax, point: Point, color: str, alpha: float = 1, annotation: str = "", border_width: int = 0):
     """
     Plots a point on the given axes.
     
@@ -104,7 +106,7 @@ def plot_point(ax, point: Point, color: str, alpha: float = 1, annotation: str =
     :param alpha: Transparency level.
     :param annotation: Text to annotate the point.
     """
-    ax.plot(point.x, point.y, "o", color=color, alpha=alpha)
+    ax.plot(point.x, point.y, "o", color=color, alpha=alpha, markeredgecolor='black', markeredgewidth=border_width)
     ax.annotate(annotation, xy=(point.x, point.y))
 
 
@@ -178,14 +180,19 @@ def generate_synapses(axon_polys: list, dendrite_polys: list) -> list:
             dendrite = dendrite_polys[j]
             overlap = axon.intersection(dendrite)
             if not overlap.is_empty:
-                con = connection()
-                con.hosts = [i]
-                con.connection_poly = overlap
-                con.connections = [j]
-                tmp_storage.append(con)
-                # Recursively search for nested intersections.
-                nested_intersections = get_nested_intersections(con, dendrite_polys)
-                tmp_storage += nested_intersections
+                a_ij = overlap.area
+
+                p_ij = 1 - np.exp(-alpha * a_ij)
+
+                if np.random.random() < p_ij:
+                    con = connection()
+                    con.hosts = [i]
+                    con.connection_poly = overlap
+                    con.connections = [j]
+                    tmp_storage.append(con)
+                    # Recursively search for nested intersections.
+                    nested_intersections = get_nested_intersections(con, dendrite_polys)
+                    tmp_storage += nested_intersections
     return tmp_storage
 
 
@@ -245,7 +252,7 @@ def create_poly_params(soma_points: list) -> list:
     :param soma_points: List of Shapely Points for neuron somata.
     :return: List [r_dendrite, r_axon, dendrite_thetas, axon_thetas].
     """
-    axon_angle = np.pi / 6
+    axon_angle = np.pi / 4
     dendrite_angle = np.pi / 2.5
     r_axon = 2
     r_dendrite = 1
@@ -253,7 +260,7 @@ def create_poly_params(soma_points: list) -> list:
     axon_thetas = []
     dendrite_thetas = []
     overall_direction = 0
-    direction_variance = np.pi / 4
+    direction_variance = np.pi / 3
 
     # Create random variance for each neuron.
     variances = (np.random.rand(len(soma_points)) * direction_variance) - (direction_variance / 2)
@@ -342,9 +349,13 @@ def remove_duplicate_intersections(connections: list) -> list:
 # ------------------- Main Plotting Section -------------------
 
 if __name__ == '__main__':
-    fig, ax_plot = plt.subplots()
-    max_size = 5
-    num_neurons = 10
+    fig, ax_plot = plt.subplots(num="Probabilistic Synaptic Generator")
+    max_size = 10
+    num_neurons = 25
+
+    graphing_colors = {"synapse": "#00bcd9"}
+    fig.suptitle("Synaptic Generator")
+
 
     # Generate random neuron positions.
     soma_x = np.random.rand(num_neurons) * max_size
@@ -367,16 +378,17 @@ if __name__ == '__main__':
     for syn in synapses:
         print(syn)
         plot_filled_polygon(ax_plot, syn.connection_poly, "#1c1c1c")
-        plot_point(ax_plot, Point(syn.get_center()), "#00f7ff")
+        plot_point(ax_plot, Point(syn.get_center()), graphing_colors["synapse"], border_width=1)
     
     legend_elements = [
         Patch(facecolor="#03fc6f", label="Axons"),
         Patch(facecolor="#f003fc", label="Dendrites"),
-        Patch(facecolor="#00f7ff", label="Synapse"),
+        Patch(facecolor=graphing_colors["synapse"], label="Synapse"),
         Patch(facecolor="#1c1c1c", label="Synapse Area"),
         Patch(facecolor="#fc2803", label="Neuron")
     ]
-    ax_plot.legend(handles=legend_elements, loc='upper right')
+    plt.subplots_adjust(right=0.75)
+    ax_plot.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1, 0.5))
     ax_plot.set_aspect("equal")
     plt.draw()
     plt.show()
