@@ -1,26 +1,46 @@
 from flask import Flask, request, render_template, redirect, jsonify, make_response
-import sys, os, uuid, time
-
-# Set up path for driver import.
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
-
-import driver
-
-# Global simulation instance (for now, limited to one user).
-sim_instances = {}
+import uuid, time, threading
+import driver  # Assuming driver.create_sim and simulation methods are defined here
 
 app = Flask(__name__)
 
+# Global simulation store and lock for thread safety.
+simulation_store = {}
+store_lock = threading.Lock()
+
+def create_session_cookie(resp):
+    """Generate a unique session ID and set it as a cookie."""
+    session_id = str(uuid.uuid4())
+    # You can set max_age (in seconds) if desired; here we leave it to the browser defaults.
+    max_age = 30 * 60
+    resp.set_cookie('session_id', session_id, max_age = max_age)
+    return session_id
+
+def update_session_timeout(resp, session_id):
+    max_age = 30 * 60
+    resp.set_cookie('session_id', session_id, max_age = max_age)
+    return session_id
+
+def get_session_id():
+    """Retrieve the session ID from the request cookies."""
+    return request.cookies.get('session_id')
+
+def clean_up_sessions():
+    """Remove sessions that have been idle for more than 10 minutes."""
+    current_time = time.time()
+    with store_lock:
+        for session_id in list(simulation_store.keys()):
+            if (current_time - simulation_store[session_id]["last_interaction"]) > 600:  # 600 seconds = 10 minutes
+                print("Removing session id:", session_id)
+                del simulation_store[session_id]
+
 @app.route("/")
-def page_load():
-    """Redirects the root URL to the home page."""
+def index():
+    # Redirect root to the home page.
     return redirect("/home")
 
 @app.route("/nav")
 def get_nav_template():
-    """Returns the navigation template."""
     try:
         return render_template("nav.html")
     except Exception as e:
@@ -29,43 +49,42 @@ def get_nav_template():
 
 @app.route("/simulation")
 def get_graph_template():
-    """
-    Returns the main simulation page by injecting the simulation 
-    template into the background template.
-    """
+    # Clean up old sessions before serving the simulation page.
+    clean_up_sessions()
     try:
+        # Render background.html with simulation.html injected into it.
         return render_template("background.html", page_name="simulation.html")
     except Exception as e:
         app.logger.error("Error rendering simulation template: %s", e)
         return jsonify({"error": "Could not load simulation template"}), 500
 
 @app.route("/simulation/iterateSim", methods=['POST'])
-def iterate_sim():
-    """
-    Iterates the simulation by running a small number of steps (100ms worth)
-    and returns a JSON representation of the updated simulation state.
-    """
-    
-    username = request.cookies.get("username")
-    sim = sim_instances[username]["sim"]
-    sim_instances[username]["last_interaction"] = time.time()
+def iterate_simulation():
+    session_id = get_session_id()
+    if not session_id:
+        app.logger.error("Session ID not found")
+        return jsonify({"error": "Session ID not found"}), 400
+
+    with store_lock:
+        session_data = simulation_store.get(session_id)
+        if not session_data or "sim" not in session_data or "last_interaction" not in session_data:
+            simulation_store.pop(session_id, None)
+            return jsonify({"error": "Simulation session corrupted or missing"}), 400
+        if time.time() - session_data["last_interaction"] > 600:
+            del simulation_store[session_id]
+            return jsonify({"error": "Session expired"}), 400
+        sim = session_data["sim"]
+        simulation_store[session_id]["last_interaction"] = time.time()
+
     try:
-        if sim is None:
-            raise ValueError("Simulation not initialized")
         num_steps = int(0.1 / sim.dt)
         graphing_params = sim.iterate(num_steps)
 
-        vs = graphing_params["vs"]
-        input_currents = graphing_params["input_currents"]
-        synaptic_inputs = graphing_params["synaptic_inputs"]
-
         sim_dict = sim.generate_model_dict()
-
-        # Update each neuron's data.
         for i in range(sim.num_neurons):
-            sim_dict["neurons"][i]["vs"] = vs[i]
-            sim_dict["neurons"][i]["input_currents"] = input_currents[i]
-            sim_dict["neurons"][i]["synaptic_inputs"] = synaptic_inputs[i]
+            sim_dict["neurons"][i]["vs"] = graphing_params["vs"][i]
+            sim_dict["neurons"][i]["input_currents"] = graphing_params["input_currents"][i]
+            sim_dict["neurons"][i]["synaptic_inputs"] = graphing_params["synaptic_inputs"][i]
 
         return jsonify(sim_dict)
     except Exception as e:
@@ -74,32 +93,37 @@ def iterate_sim():
 
 @app.route("/simulation/setCurrent", methods=['POST'])
 def set_current():
-    """
-    Receives current stimulation parameters from the client, applies
-    them to the corresponding neurons, and returns the updated simulation state.
-    """
-    username = request.cookies.get("username")
-    sim = sim_instances[username]["sim"]
-    sim_instances[username]["last_interaction"] = time.time()
+    session_id = get_session_id()
+    if not session_id:
+        app.logger.error("Session ID not found")
+        return jsonify({"error": "Session ID not found"}), 400
+
+    with store_lock:
+        session_data = simulation_store.get(session_id)
+        if not session_data or "sim" not in session_data or "last_interaction" not in session_data:
+            simulation_store.pop(session_id, None)
+            return jsonify({"error": "Simulation session corrupted or missing"}), 400
+        if time.time() - session_data["last_interaction"] > 600:
+            del simulation_store[session_id]
+            return jsonify({"error": "Session expired"}), 400
+        sim = session_data["sim"]
+        simulation_store[session_id]["last_interaction"] = time.time()
+
     try:
-        if sim is None:
-            raise ValueError("Simulation not initialized")
         data = request.get_json()
         if not data:
             raise ValueError("No current data provided")
-        # Iterate through each neuron in the data.
+
         for neuron_index in data:
             stim_params = data[neuron_index]
             neuron_stim_type = stim_params["currentType"]
-            neuron_index_int = int(neuron_index)
-            neuron = sim.neuron_models[neuron_index_int]
+            neuron = sim.neuron_models[int(neuron_index)]
 
             app.logger.info(f"Applying stimulation: {stim_params}")
-
             if neuron_stim_type == "Square":
                 neuron.set_square_current(stim_params["freq"], stim_params["maxCurrent"])
             elif neuron_stim_type == "Sin":
-                neuron.set_sin_current(stim_params["freq"], stim_params["maxCurrent"]/2)
+                neuron.set_sin_current(stim_params["freq"], stim_params["maxCurrent"] / 2)
             elif neuron_stim_type == "Constant":
                 neuron.set_const_current(stim_params["maxCurrent"])
             elif neuron_stim_type == "None":
@@ -113,64 +137,41 @@ def set_current():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/simulation/startSim", methods=['POST'])
-def setup_sim():
-    """
-    Initializes the simulation with the specified number of neurons and 
-    culture dimensions. Returns the initial simulation state as JSON.
-    """
+def setup_simulation():
+
+    session_id = get_session_id()
+    data = request.get_json()
+    if not data:
+        app.logger.warning("No simulation setup data received")
+        return jsonify({"error": "No data received"}), 400
+
     try:
-        data = request.get_json()
-        num_neurons = 0
-        if not data:
-            app.logger.warning("No simulation setup data received")
-            return jsonify({"error": "No data received"}), 400
-        num_neurons_err = False
-        try:
-            num_neurons = int(data["numNeurons"]) 
-            if num_neurons <= 0:
-                num_neurons_err = True
-            
-        except Exception as e:
-            app.logger.error("Unable to make empty simulation")
-            num_neurons_err
-
-        if num_neurons_err:
-            num_neurons = 1
-            
-    
-        culture_dimensions = data["dimensions"]
-
-        sim = driver.create_sim(num_neurons,
-                                float(culture_dimensions["x"]),
-                                float(culture_dimensions["y"]))
-        
-        resp = make_response(jsonify(sim.generate_model_dict()))
-
-        user = str(uuid.uuid4())
-        sim_instances[user] = {"sim":sim, "last_interaction": time.time()}
-        resp.set_cookie("username", user)
-
-        return resp
+        num_neurons = int(data.get("numNeurons", 1))
     except Exception as e:
-        app.logger.error("Error setting up simulation: %s", e)
-        return jsonify({"error": str(e)}), 500
+        app.logger.error("Invalid number of neurons: %s", e)
+        num_neurons = 1
+
+    max_neurons = 25
+    num_neurons = min(max(num_neurons, 1), max_neurons)
+    culture_dimensions = data["dimensions"]
+
+    sim = driver.create_sim(num_neurons,
+                            float(culture_dimensions["x"]),
+                            float(culture_dimensions["y"]))
+
+    resp = make_response(jsonify(sim.generate_model_dict()))
+    if not session_id:
+        session_id = create_session_cookie(resp)
+    else:
+        session_id = update_session_timeout(resp, session_id)
+
+    with store_lock:
+        simulation_store[session_id] = {"sim": sim, "last_interaction": time.time()}
+
+    return resp
 
 @app.route("/home")
 def home():
-    """Returns the home page by injecting the home template into the background."""
-    print(sim_instances)
-    for key in sim_instances:
-        #clean up all old instances when home page is loaded 
-        
-        last_interaction = sim_instances[key]["last_interaction"]
-        cur_time = time.time()
-
-        elapsed_time = cur_time - last_interaction
-        elapsed_minutes = elapsed_time/60
-
-        if elapsed_minutes > 10:
-            sim_instances[key] = {}
-        
     try:
         return render_template("background.html", page_name="home.html")
     except Exception as e:
@@ -179,7 +180,6 @@ def home():
 
 @app.route("/about")
 def about():
-    """Returns the about page by injecting the about template into the background."""
     try:
         return render_template("background.html", page_name="about.html")
     except Exception as e:
@@ -187,4 +187,4 @@ def about():
         return jsonify({"error": "Could not load about page"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
