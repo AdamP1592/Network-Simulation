@@ -1,5 +1,11 @@
 from flask import Flask, request, render_template, redirect, jsonify, make_response
-import uuid, time, threading
+import uuid, time, threading, os, sys
+
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+sys.path.append(parent)
+
+import driver
 import driver  # Assuming driver.create_sim and simulation methods are defined here
 
 app = Flask(__name__)
