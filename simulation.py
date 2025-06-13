@@ -32,6 +32,7 @@ class simulation:
         "e": [0, 0],
         "g_max": [0.3, 1]
     }
+    # not used in this simulation
     gaba_synapse_params = {
         "tau_recovery": [0.5, 2],
         "tau_facilitation": [0.05, 0.2],
@@ -40,7 +41,7 @@ class simulation:
         "e": [-75, -70],
         "g_max": [0.3, 1]
     }
-    synapse_switch = [ampa_synapse_params, gaba_synapse_params]
+    synapse_switch = [ampa_synapse_params]
 
     def __init__(self, num_neurons: int, dt: float):
         """

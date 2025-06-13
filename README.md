@@ -1,4 +1,4 @@
-# Corticospinal Neruon Culture Simulation
+ # Corticospinal Neruon Culture Simulation
 
 A network simulation project modeling a network of neurons with stimulation. This project uses a Hodgkin–Huxley neuron model with dynamic synapses based on the Tsodyks–Markram model. It combines biophysical modeling, computational geometry for connectivity, and a Flask backend API to serve a webpage interface.
 
@@ -316,6 +316,7 @@ provided that $I' \neq \varnothing$. Duplicate connections, identified by identi
         synapses = create_synapses(soma_points)
         print("Generated", len(synapses), "synapses")
 ```
+
 ---
 
 ## Backend API
