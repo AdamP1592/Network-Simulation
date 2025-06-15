@@ -77,7 +77,7 @@ class tsodyks_markram_synapse:
         :return: Dictionary containing state variables, parameters, and connection indices.
         """
         # Determine neurotransmitter type based on reversal potential:
-        param_switch = ["nmda", "ampa"]
+        param_switch = ["glutamate", "gaba"]
         syn_params = {
             "state": {
                 "r": self.r,
@@ -155,14 +155,16 @@ class tsodyks_markram_synapse:
         self.action_potential_thresholds = []
         for neuron in self.pre_synaptic_neurons:
             self.action_potential_thresholds.append(neuron.action_potential_threshold)
+        
+        # Forces the most active input values
 
-        # Assume params contain lists and take the first/second element as needed.
-        self.tau_r = params["tau_recovery"][0]
-        self.tau_f = params["tau_facilitation"][1]
-        self.u_max = params["u_max"][0]
-        self.u = params["u"][0]
-        self.reversal_potential = params["e"][1]
-        self.g_max = params["g_max"][1]
+        ## FUTURE: CORRELATION ANALYISIS NEEDED BETWEEN PARAMETERS
+        self.tau_r = params["tau_recovery"][0] # Small
+        self.tau_f = params["tau_facilitation"][1] # Large
+        self.u_max = params["u_max"][0] # 0.8 (basically dumps all resources on spike)
+        self.u = params["u"][0] # start with nothing 
+        self.reversal_potential = params["e"][1] # no range here
+        self.g_max = params["g_max"][1] # large
         self.g_syn = 0
         self.r = 1
 

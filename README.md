@@ -370,7 +370,6 @@ This project demonstrates the integration of detailed biophysical neuron models,
 
 - Hodgkin, A. L., & Huxley, A. F. (1952). A quantitative description of membrane current and its application to conduction and excitation in nerve. *The Journal of Physiology, 117*(4), 500–544.
 - Tsodyks, M., & Markram, H. (1997). The neural code between neocortical pyramidal neurons depends on neurotransmitter release probability. *Proceedings of the National Academy of Sciences, 94*(2), 719–723.
-- Mainen, Z. F., & Sejnowski, T. J. (1996). Influence of dendritic structure on firing pattern in model neocortical neurons. *Nature, 382*(6589), 363–366.
 - Barakat, A., Hojjati, S. M., Moayeri, N. A., et al. (2016). Nano structures via laser interference patterning for guided cell growth of neuronal cells. *Journal of Nanotechnology in Medicine, 12*(4), 345–356. DOI: [10.1234/jnm.2016.4567]
 
 ### Acknowledgments

@@ -23,14 +23,14 @@ class simulation:
         "vrest": -65,      # Resting potential (mV)
         "vthresh": -55     # Threshold potential (mV)
     }
-    
-    ampa_synapse_params = {
-        "tau_recovery": [0.2, 1],
+    ## grabbed from excitory pyrimidal neurons rather than corticospinal neurons
+    glutamate_synapse_params = {
+        "tau_recovery": [0.2, 1.0],
         "tau_facilitation": [0.05, 0.8],
         "u_max": [0.8, 0.1],
         "u": [0],
         "e": [0, 0],
-        "g_max": [0.3, 1]
+        "g_max": [0.3, 1.0]
     }
     # not used in this simulation
     gaba_synapse_params = {
@@ -41,7 +41,7 @@ class simulation:
         "e": [-75, -70],
         "g_max": [0.3, 1]
     }
-    synapse_switch = [ampa_synapse_params]
+    synapse_switch = [glutamate_synapse_params]
 
     def __init__(self, num_neurons: int, dt: float):
         """
