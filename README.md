@@ -1,6 +1,8 @@
- # Corticospinal Neruon Culture Simulation
+ # Corticospinal Neuron Culture Simulation
 
 A network simulation project modeling a network of neurons with stimulation. This project uses a Hodgkin–Huxley neuron model with dynamic synapses based on the Tsodyks–Markram model. It combines biophysical modeling, computational geometry for connectivity, and a Flask backend API to serve a webpage interface.
+
+*Note: For demonstration, some synaptic and network parameters are set for visual clarity and performance, not strict biological realism*
 
 You can try out the demo [here](https://adamp1592.pythonanywhere.com/home)!
 
@@ -27,9 +29,8 @@ You can try out the demo [here](https://adamp1592.pythonanywhere.com/home)!
 
 This project simulates a network of neurons using a Hodgkin–Huxley model with dynamic synapses. The core components include:
 
-- **Biophysical Neuron Model:** Implements ion-channel dynamics and membrane potential updates using the Hodgkin–Huxley framework for corticospinal neurons.
-- **Dynamic Synapses:** Uses computational geometry to determine connectivity based on the overlap of axonal and dendritic projections. For activity, uses Tsodyks-Markram synapses
-with corticospinal synapse parameters
+- **Biophysical Neuron Model:** Implements ion-channel dynamics and membrane potential updates using the Hodgkin–Huxley framework with constants based on corticospinal neurons.
+- **Dynamic Synapses:** Uses computational geometry to determine connectivity based on the overlap of axonal and dendritic projections. For activity, uses Tsodyks–Markram synapses with glutamatergic parameters (based on neocortical literature, but tuned for maximal visible activity in the demo).
 - **Flask Backend:** Provides REST API endpoints for simulation initialization, iteration, and current stimulation.
 - **Webpage Interface:** The backend API serves data to a webpage that displays the simulation results.
 
@@ -152,13 +153,6 @@ These equations form the mathematical backbone of the Hodgkin–Huxley neuron mo
 **Description:**  
 The Tsodyks-Markram synapse model simulates short-term synaptic plasticity by dynamically adjusting synaptic efficacy. It does so by tracking the fraction of available synaptic resources (`r`) and the utilization of these resources (`u`). The model uses these variables to compute the effective synaptic conductance (`g_syn`), which modulates the post-synaptic current. This approach captures both the depression (resource depletion) and facilitation (increased utilization) effects observed in biological synapses.
 
-
-
-**Description:**  
-The Tsodyks–Markram synapse model simulates short-term synaptic plasticity by dynamically adjusting synaptic efficacy. It does so by tracking two key variables:  
-- **r**: the fraction of available synaptic resources, and  
-- **u**: the utilization of these resources.  
-
 The effective synaptic conductance is given by:
 
 $$
@@ -188,7 +182,7 @@ $$
 u \rightarrow u + u_{max} \cdot (1 - u)
 $$
 
-Here, ${\tau_r}$ and ${\tau_f}$ are the recovery and facilitation time constants, respectively, and $u_{\max}$ is the maximum utilization increment.
+Here, ${\tau_r}$ and ${\tau_f}$ are the recovery and facilitation time constants, respectively, and $u_{\max}$ is the maximum utilization increment. $u_{\max}$ is denoted as such for the sake of programatic comprehension, but the constant is normally denoted as $U_{SE}$
 
 ---
 
@@ -235,7 +229,7 @@ The synapse generator uses computational geometry to model connectivity:
   Neuronal projections (axonal and dendritic) are modeled as semicircular polygons.
   
 - **Connectivity Determination:**  
-  Overlap area between an axonal polygon from one neuron and a dendritic polygon from another produces the probabability of a synaptic connection (a `connection` object). Nested intersections are computed recursively.
+  Overlap area between an axonal polygon from one neuron and a dendritic polygon from another produces the probability of a synaptic connection (a `connection` object). Nested intersections are computed recursively.
   
 - **Duplicate Removal:**  
   Duplicate connection objects are removed using the `remove_duplicate_intersections` function.
@@ -364,7 +358,16 @@ The Flask backend exposes several endpoints to manage the simulation:
 
 ## Conclusion
 
-This project demonstrates the integration of detailed biophysical neuron models, dynamic synapse simulation, and computational geometry to generate realistic neural network connectivity. By combining the Hodgkin–Huxley framework with Tsodyks–Markram dynamic synapses and a custom synapse generator, the simulation provides insights into both the electrophysiological behavior and the structural connectivity of neuronal networks. The modular design also paves the way for future enhancements, including the incorporation of growth cone dynamics and multi-user simulation capabilities.
+This project demonstrates the integration of detailed biophysical neuron models, dynamic synapse simulation, and computational geometry to generate realistic neural network connectivity. By combining the Hodgkin–Huxley framework with Tsodyks–Markram dynamic synapses and a custom synapse generator, the simulation provides insights into both the electrophysiological behavior and the structural connectivity of neuronal networks. The modular design also paves the way for future enhancements, including the incorporation of growth cone dynamics and more high fidelity neuron models.
+
+### Limitations
+- **Neuron Model**: Neurons are implemented as single-compartment models rather than multi-compartmental morphologies. As a result, signal attenuation along dendrites/axons and compartment-specific ion channel dynamics are not represented.
+
+- **Synapse Model**: For demonstration, synaptic parameters are manually set to maximize visible network activity, rather than randomized or sampled from experimental distributions.
+
+- **Synaptic Connections**: The connection algorithm uses a custom geometric approach with limited experimental field data for validation. This may not capture all biological nuances of synapse formation.
+
+- **Performance Concerns**: To optimize web demo performance and hosting constraints, connections are currently unidirectional. Bidirectionality and more complex recurrent structures are omitted in this demo version.
 
 ### References
 
@@ -380,15 +383,24 @@ We extend our gratitude to the researchers and developers whose pioneering work 
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-
 ## Future Enhancements
 
 - **User-Defined Currents:**  
-  Add support for user-defined current equations via text input.
-- **Multi-User Support:**  
-  Extend the backend to support multiple simulation instances concurrently.
+  Allow users to define custom stimulation current equations via text input or scripting.
 - **Performance Optimization:**  
-  Optimize the nested intersection computation for larger networks.
+  Accelerate nested intersection computations to support larger or denser networks efficiently.
+- **Neuron Activity Fidelity Enhancements**
+  Upgrade to a multi-compartment neuron model (e.g., Mainen & Sejnowski, 1996) to capture dendritic signal propagation and compartment-specific channel dynamics.
+- **Synapse Placement Enhancement**
+  Refine synapse localization by using shortest path algorithm within the overlap field, rather than simple centroid placement.
+- **Dendritic and Axonal Field Fidelity Enhancement**
+  Incorporate imaging data from 2D cultured upper motor neurons to model field shapes more accurately, replacing schematic polygons with data-driven morphologies.
+- **Re-Enable bidirectionality for better accuracy**
+  Re-enable bidirectional synaptic connections for more biologically accurate network topology (previously removed for performance reasons).
+- **User Tracking**
+  Swap from cookie-based user-id to url-based.
+- **Push away from steady state towards developmental model**
+  Move beyond steady-state networks by implementing activity-dependent growth and pruning mechanisms, allowing the network to evolve in response to simulated activity.
 
 ---
 
