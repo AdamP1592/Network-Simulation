@@ -97,7 +97,7 @@ class tsodyks_markram_synapse:
                 "x": self.x,
                 "y": self.y,
                 # If reversal potential > -1, choose index 1 (typically AMPA), else NMDA.
-                "neurotransmitterType": param_switch[1 if self.reversal_potential > -1 else 0]
+                "neurotransmitterType": param_switch[0 if self.reversal_potential > -1 else 1]
             },
             "connections": {
                 "pre": self.pre_indicies,
@@ -166,6 +166,7 @@ class tsodyks_markram_synapse:
         self.reversal_potential = params["e"][1] # no range here
         self.g_max = params["g_max"][1] # large
         self.g_syn = 0
+        self.tau_g = params["tau_g"][0]
         self.r = 1
 
     def update_spike_times(self):
@@ -208,7 +209,6 @@ class tsodyks_markram_synapse:
         :param t: The current time to update against.
         """
         self.update_spike_times()
-        dirac_sum = 0
         has_past_spike = False
 
         # Update r and u based on pre-synaptic activity.
@@ -220,23 +220,29 @@ class tsodyks_markram_synapse:
                     self.r = self.r_past - (self.u_past * self.r_past)
                     # Update utilization.
                     self.u = self.u_past + self.u_max * (1 - self.u_past)
+                    #update conductance
+                    self.g_syn = self.g_syn + self.g_max * self.u * self.r_past
+                    
 
         # If no new spike occurred, update r and u via continuous recovery/facilitation.
         if not has_past_spike:
             drdt = (1 - self.r) / self.tau_r
             dudt = (-self.u / self.tau_f)
+            dgdt = -self.g_syn / self.tau_g
+
             self.r += drdt * self.dt
             self.u += dudt * self.dt
+            self.g_syn += dgdt * self.dt
 
         self.r_past = self.r
         self.u_past = self.u
 
-        # Compute synaptic conductance.
-        self.g_syn = self.g_max * self.r * self.u
-
-        # Apply synaptic current to each post-synaptic neuron.
+        
+        #print("G_syn", self.g_syn)
+        # Apply synaptic current to each post-synaptic neuron(only 1, but in a for in case)
         for neuron in self.post_synaptic_neurons:
-            i_syn = self.g_syn * (neuron.v - self.reversal_potential)
+            
+            i_syn = -self.g_syn * (self.reversal_potential - neuron.v)
             neuron.i_syn += i_syn
 
         self.t += self.dt

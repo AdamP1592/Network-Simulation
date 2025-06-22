@@ -52,7 +52,6 @@ def create_sim(num_neurons, x_max, y_max):
         connections = synapse_generator.create_synapses(soma_points)
     except Exception as e:
         raise RuntimeError("Error generating synapses: " + str(e))
-
     for con in connections:
         pre_syn_neurons = con.hosts
         post_syn_neurons = con.connections

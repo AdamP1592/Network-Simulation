@@ -30,7 +30,8 @@ class simulation:
         "u_max": [0.8, 0.1],
         "u": [0],
         "e": [0, 0],
-        "g_max": [0.3, 1.0]
+        "g_max": [1.0, 2.0],
+        "tau_g": [0.1, 5.0]
     }
     # not used in this simulation
     gaba_synapse_params = {
@@ -173,6 +174,7 @@ class simulation:
         return {"vs": vs, "input_currents": input_currents, "synaptic_inputs": synaptic_inputs}
     
     def create_synapse(self, pre_synaptic_neuron_indexes: list, post_synaptic_neuron_indexes: list, synapse_params: dict = {}) -> None:
+        import sys
         """
         Creates a synapse between specified pre- and post-synaptic neurons.
         
@@ -183,9 +185,8 @@ class simulation:
         :param synapse_params: (Optional) Dictionary of synapse parameters.
         """
         import random
-        if not synapse_params.keys():
-            synapse_params = self.synapse_switch[random.randint(0, 1)]
-        
+        synapse_params = self.synapse_switch[0]
+
         size = len(pre_synaptic_neuron_indexes) + len(post_synaptic_neuron_indexes)
         if size > self.largest_synapse_size:
             self.largest_synapse_size = size

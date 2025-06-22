@@ -191,8 +191,8 @@ def generate_synapses(axon_polys: list, dendrite_polys: list) -> list:
                     con.connections = [j]
                     tmp_storage.append(con)
                     # Recursively search for nested intersections.
-                    nested_intersections = get_nested_intersections(con, dendrite_polys)
-                    tmp_storage += nested_intersections
+                    #nested_intersections = get_nested_intersections(con, dendrite_polys)
+                    #tmp_storage += nested_intersections
     return tmp_storage
 
 
@@ -252,6 +252,8 @@ def create_poly_params(soma_points: list) -> list:
     :param soma_points: List of Shapely Points for neuron somata.
     :return: List [r_dendrite, r_axon, dendrite_thetas, axon_thetas].
     """
+
+
     axon_angle = np.pi / 4
     dendrite_angle = np.pi / 2.5
     r_axon = 2
@@ -265,9 +267,9 @@ def create_poly_params(soma_points: list) -> list:
     # Create random variance for each neuron.
     variances = (np.random.rand(len(soma_points)) * direction_variance) - (direction_variance / 2)
     axon_directions = overall_direction + variances
-
+    print("Axon Directions: ", axon_directions)
     for i in range(len(soma_points)):
-        axon_direction = axon_directions[i]
+        axon_direction = axon_directions[i] + (np.pi * np.random.choice([0, 1]))
         theta1_axon = axon_direction + (axon_angle / 2)
         theta2_axon = axon_direction - (axon_angle / 2)
         axon_thetas.append((theta1_axon, theta2_axon))
@@ -321,11 +323,10 @@ def create_synapses(soma_points: list) -> list:
     print("Generating synapses")
     no_overlap_synapses = generate_synapses(axon_polys, dendrite_polys)
     print("Removing any duplicate synapses")
-    no_overlap_synapses = remove_duplicate_intersections(no_overlap_synapses)
+    synapses = remove_duplicate_intersections(no_overlap_synapses)
     print("Getting axons that overlap existing synapses")
-    synapses = get_axon_overlap(no_overlap_synapses, axon_polys)
-    print("Found")
-    synapses += no_overlap_synapses
+    #synapses = get_axon_overlap(no_overlap_synapses, axon_polys)
+    
     print("Total synapses:", len(synapses))
     return synapses
 
