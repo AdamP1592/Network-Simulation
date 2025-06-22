@@ -234,9 +234,12 @@ class tsodyks_markram_synapse:
             self.u += dudt * self.dt
             self.g_syn += dgdt * self.dt
 
+        self.g_syn = max(self.g_syn, 0.0)
+        self.r = max(0.0, min(1.0, self.r))
+        self.u = max(0.0, min(1.0, self.u))
+
         self.r_past = self.r
         self.u_past = self.u
-
         
         #print("G_syn", self.g_syn)
         # Apply synaptic current to each post-synaptic neuron(only 1, but in a for in case)

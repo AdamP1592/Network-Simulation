@@ -40,7 +40,8 @@ class simulation:
         "u_max": [0.5, 0.3],
         "u": [0],
         "e": [-75, -70],
-        "g_max": [0.3, 1]
+        "g_max": [0.3, 1],
+        "tau_g": [0.1, 5.0]
     }
     synapse_switch = [glutamate_synapse_params]
 
