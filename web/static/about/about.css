@@ -13,3 +13,7 @@ p{
 th{
     text-align:left;
 }
+section{
+    display:flex;
+    flex-direction:column;
+}
