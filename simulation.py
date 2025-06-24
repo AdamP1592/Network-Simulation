@@ -25,19 +25,19 @@ class simulation:
     }
     ## grabbed from excitory pyrimidal neurons rather than corticospinal neurons
     glutamate_synapse_params = {
-        "tau_recovery": [0.2, 1.0],
+        "tau_recovery": [0.05, 0.85],
         "tau_facilitation": [0.05, 0.8],
-        "u_max": [0.8, 0.1],
+        "u_min": [0.2, 0.5],
         "u": [0],
         "e": [0, 0],
-        "g_max": [1.0, 2.0],
+        "g_max": [0.1, 5.0],
         "tau_g": [0.1, 5.0]
     }
     # not used in this simulation
     gaba_synapse_params = {
         "tau_recovery": [0.5, 2],
         "tau_facilitation": [0.05, 0.2],
-        "u_max": [0.5, 0.3],
+        "u_min": [0.05, 0.2],
         "u": [0],
         "e": [-75, -70],
         "g_max": [0.3, 1],

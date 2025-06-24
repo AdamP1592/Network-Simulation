@@ -9,7 +9,6 @@ from shapely import centroid, area
 axon_polys = []
 dendrite_polys = []
 
-alpha = 5# scaling parameter for probabilistic connection
 
 
 class connection:
@@ -171,6 +170,7 @@ def generate_synapses(axon_polys: list, dendrite_polys: list) -> list:
     :return: List of connection objects representing synapses.
     """
     tmp_storage = []
+    alpha = 5# scaling parameter for probabilistic connection
     print(len(axon_polys), len(dendrite_polys))
     for i in range(len(axon_polys)):
         axon = axon_polys[i]
@@ -183,7 +183,7 @@ def generate_synapses(axon_polys: list, dendrite_polys: list) -> list:
                 a_ij = overlap.area
 
                 p_ij = 1 - np.exp(-alpha * a_ij)
-
+                print(f"Probability: {p_ij},Area {a_ij}")
                 if np.random.random() < p_ij:
                     con = connection()
                     con.hosts = [i]

@@ -90,7 +90,7 @@ class tsodyks_markram_synapse:
             "params": {
                 "g_syn": self.g_syn,
                 "g_max": self.g_max,
-                "u_max": self.u_max,
+                "u_min": self.u_min,
                 "e": self.reversal_potential,
                 "tau_recovery": self.tau_r,
                 "tau_facilitation": self.tau_f,
@@ -110,7 +110,7 @@ class tsodyks_markram_synapse:
         """
         Sets activation parameters from a parameter dictionary that is not nested.
         
-        :param params: Dictionary with keys for tau_recovery, tau_facilitation, u_max, e, g_max, and g_syn.
+        :param params: Dictionary with keys for tau_recovery, tau_facilitation, u_min, e, g_max, and g_syn.
         """
 
         
@@ -132,7 +132,7 @@ class tsodyks_markram_synapse:
         
         self.tau_r = synapse_params["tau_recovery"]
         self.tau_f = synapse_params["tau_facilitation"]
-        self.u_max = synapse_params["u_max"]
+        self.u_min = synapse_params["u_min"]
         self.reversal_potential = synapse_params["e"]
         self.g_max = synapse_params["g_max"]
         self.g_syn = synapse_params["g_syn"]
@@ -160,14 +160,16 @@ class tsodyks_markram_synapse:
 
         ## FUTURE: CORRELATION ANALYISIS NEEDED BETWEEN PARAMETERS
         self.tau_r = params["tau_recovery"][0] # Small
-        self.tau_f = params["tau_facilitation"][1] # Large
-        self.u_max = params["u_max"][0] # 0.8 (basically dumps all resources on spike)
-        self.u = params["u"][0] # start with nothing 
+        self.tau_f = params["tau_facilitation"][0] # small
+        self.u_min = params["u_min"][1] # large
+        self.u = self.u_min #start at the base state
+        self.u_past = self.u
         self.reversal_potential = params["e"][1] # no range here
         self.g_max = params["g_max"][1] # large
         self.g_syn = 0
-        self.tau_g = params["tau_g"][0]
+        self.tau_g = params["tau_g"][0] # small
         self.r = 1
+        self.r_past = self.r
 
     def update_spike_times(self):
         """
@@ -216,18 +218,20 @@ class tsodyks_markram_synapse:
             if self.is_active[i]:
                 if self.t == self.past_spike_times[i]:
                     has_past_spike = True
-                    # Estimate the immediate drop in resources due to a spike.
-                    self.r = self.r_past - (self.u_past * self.r_past)
                     # Update utilization.
-                    self.u = self.u_past + self.u_max * (1 - self.u_past)
-                    #update conductance
+                    self.u = self.u_past + self.u_min * (1 - self.u_past)
+                    # Estimate the immediate drop in resources due to a spike.
+                    # To Decouple: self.r = self.r_past - ((self.u_past + self.u_min * (1 - self.u_past)) * self.r_past)
+                    self.r = self.r_past - (self.u * self.r_past)
+                    # update conductance
+                    # To Decouple: self.g_syn + self.g_max * (self.u_past + self.u_min * (1 - self.u_past)) * self.r_past
                     self.g_syn = self.g_syn + self.g_max * self.u * self.r_past
                     
 
         # If no new spike occurred, update r and u via continuous recovery/facilitation.
         if not has_past_spike:
             drdt = (1 - self.r) / self.tau_r
-            dudt = (-self.u / self.tau_f)
+            dudt = (self.u_min-self.u / self.tau_f)
             dgdt = -self.g_syn / self.tau_g
 
             self.r += drdt * self.dt
@@ -245,7 +249,7 @@ class tsodyks_markram_synapse:
         # Apply synaptic current to each post-synaptic neuron(only 1, but in a for in case)
         for neuron in self.post_synaptic_neurons:
             
-            i_syn = -self.g_syn * (self.reversal_potential - neuron.v)
+            i_syn = -self.g_syn * (neuron.v - self.reversal_potential)
             neuron.i_syn += i_syn
 
         self.t += self.dt

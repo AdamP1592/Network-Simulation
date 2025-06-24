@@ -1,0 +1,92 @@
+FOR BEST VISUALS USE UPMATH(it renders pure latex accurately though, it does left-align by default)
+$$
+C_m = 1\;\mu F/cm^2\\
+V_{rest} = -65\;mV\\
+V_{thresh} = -55\;mV\\
+\bar{g}_k = 120\;mS/cm^2\\
+\bar{g}_{na} = 36\;mS/cm^2\\
+\bar{g}_{leak} = 0.3\;mS/cm^2\\
+E_{k} = -77\;mV\\
+E_{na} = 50\;mV\\
+E_{leak} = -54.4\;mV
+$$
+
+$$
+\frac{dV}{dt}
+  &= \frac{I_{\!ext} \;-\; I_{\!na} \;-\; I_k \;-\; I_{\!leak} \;-\; I_{\!syn}}{C_m}\\
+I_k
+  &= g_k\,n^4\,(V - E_k)\\
+I_{na}
+  &= g_{na}\,m^4\,h\,(V - E_{na})\\
+I_{leak}
+  &= g_{leak}\,(V - E_{leak})\\
+I_{syn}
+  &= g_{syn}\,\,(V - E_{syn})
+$$
+
+$$
+\frac{dm}{dt} = \alpha_{m}(V)(1-m)-\beta_{m}(V)m\\\\
+\frac{dh}{dt} = \alpha_{h}(V)(1-h)-\beta_{h}(V)h\\\\
+\frac{dn}{dt} = \alpha_{n}(V)(1-n)-\beta_{n}(V)n\\
+$$
+
+$$
+\frac{dr}{dt} = \frac{1 - r}{\tau_r}\\
+\frac{du}{dt} = \frac{u_{min}-u}{\tau_f}\\
+\frac{dg_{syn}}{dt} = \frac{-g_{syn}}{\tau_g}\\
+$$
+
+$$
+u = u + u_{min} \cdot (1 - u)\\
+g_{syn} = g_{syn} + g_{max} \cdot u \cdot r\\
+r = r - (u \cdot r)\\
+$$
+
+$$
+I_{syn} = g_{syn} * (V_{post} - E_{r})\\
+$$
+
+
+$$
+*_f\;\text{denotes an axon or dendrite field}\\
+P_{ij}\text{= the probability of synapse formation between neuron i and j}\\
+\alpha = \text{scaling constant}\\
+A = \text{Area}\\
+(x_c, y_c) = \text{the centroid of the region}
+$$
+
+$$
+x_c &= \frac{1}{A} \iint_{R} x\, dA \\
+y_c &= \frac{1}{A} \iint_{R} y\, dA \\
+A &= \iint_{R} dA
+$$
+
+$$
+A_{ij} = |a^{(i)}_f \cap d^{(j)}_f |\\
+P_{ij} = 1 - e^{-\alpha * A_{ij}}
+$$
+
+$$
+a_f^{(i)}  = \begin{cases} 
+x = x_0 + r'_a^{(i)}cos(\theta_a) \\
+y = y_0 + r'_a^{(i)}sin(\theta_a) \\  
+r'_a \in[0, r_a^{(i)}] \\
+\theta_a \in 
+[\theta_{a1}^{(i)}, \theta_{a2}^{(i)}] \cup
+[\theta_{a1}^{(i)} + \pi, \theta_{a2}^{(i)} + \pi]
+\end{cases}\\
+$$
+
+$$
+d_f^{(i)}  = \begin{cases} 
+x = x_0 + r'_d^{(i)}cos(\theta_d) \\
+y = y_0 + r'_d^{(i)}sin(\theta_d) \\  
+r'_d \in[0, r_d^{(i)}] \\
+\theta_d \in [\theta_{a1}^{(i)} + \pi,\, \theta_{a2}^{(i)} + \pi]
+\end{cases}\\
+$$
+
+$$
+\text{For each fixed } \theta, \text{in radians,}\, r'_a \text{ takes all values in its interval.}
+$$
+
