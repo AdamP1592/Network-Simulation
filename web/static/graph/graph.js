@@ -281,11 +281,13 @@ function removeElectrode(nodeName) {
     for (let electrodeIndex in electrodes) {
         const electrode = electrodes[electrodeIndex];
         if (electrode.name === nodeName) {
+            console.log(electrode, nodeName)
             const data = {};
             // For each connected neuron, set its current to "none".
             for (let neuronIndex in electrode.connectedNeurons) {
-                const neuron = electrode.connectedNeurons[neuronIndex];
-                data[neuron[1]] = currentData;
+                let neuron = electrode.connectedNeurons[neuronIndex];
+                let neuron_index = neuron.slice(1);
+                data[neuron_index] = currentData;
             }
             addCurrent(data);
             // Remove the electrode from the list.
