@@ -249,7 +249,7 @@ class tsodyks_markram_synapse:
         # Apply synaptic current to each post-synaptic neuron(only 1, but in a for in case)
         for neuron in self.post_synaptic_neurons:
             
-            i_syn = -self.g_syn * (neuron.v - self.reversal_potential)
+            i_syn = self.g_syn * (neuron.v - self.reversal_potential)
             neuron.i_syn += i_syn
 
         self.t += self.dt
