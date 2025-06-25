@@ -183,7 +183,7 @@ def generate_synapses(axon_polys: list, dendrite_polys: list) -> list:
                 a_ij = overlap.area
 
                 p_ij = 1 - np.exp(-alpha * a_ij)
-                print(f"Probability: {p_ij},Area {a_ij}")
+                #print(f"Probability: {p_ij},Area {a_ij}")
                 if np.random.random() < p_ij:
                     con = connection()
                     con.hosts = [i]
@@ -267,7 +267,7 @@ def create_poly_params(soma_points: list) -> list:
     # Create random variance for each neuron.
     variances = (np.random.rand(len(soma_points)) * direction_variance) - (direction_variance / 2)
     axon_directions = overall_direction + variances
-    print("Axon Directions: ", axon_directions)
+    #print("Axon Directions: ", axon_directions)
     for i in range(len(soma_points)):
         axon_direction = axon_directions[i] + (np.pi * np.random.choice([0, 1]))
         theta1_axon = axon_direction + (axon_angle / 2)
@@ -377,7 +377,6 @@ if __name__ == '__main__':
         plot_filled_polygon(ax_plot, poly, "#f003fc")
     # Plot synapse connection polygons and synapse positions.
     for syn in synapses:
-        print(syn)
         plot_filled_polygon(ax_plot, syn.connection_poly, "#1c1c1c")
         plot_point(ax_plot, Point(syn.get_center()), graphing_colors["synapse"], border_width=1)
     

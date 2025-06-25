@@ -157,7 +157,8 @@ def setup_simulation():
         app.logger.error("Invalid number of neurons: %s", e)
         num_neurons = 1
 
-    max_neurons = 25
+    max_neurons = 500
+    print("Number of neurons", num_neurons, file=sys.stdout)
     num_neurons = min(max(num_neurons, 1), max_neurons)
     culture_dimensions = data["dimensions"]
 
