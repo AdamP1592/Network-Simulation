@@ -57,7 +57,7 @@ This project simulates a network of neurons using a Hodgkin–Huxley model with 
 The Hodgkin–Huxley model describes the dynamics of a neuron's membrane potential \(V\) with the following main equation:
 
 $$
-C \frac{dV}{dt} = I_{\text{input}} - \left(I_{Na} + I_K + I_L\right)
+\frac{dV}{dt} = \frac{I_{\!ext} \;-\; I_{\!na} \;-\; I_k \;-\; I_{\!leak} \;-\; I_{\!syn}}{C_m}
 $$
 
 Where:
@@ -70,19 +70,25 @@ Where:
 - **Sodium Current:**
 
 $$
-I_{Na} = g_{Na} \cdot m^3 \cdot h \cdot (V - E_{Na})
+I_{na} = g_{na}\,m^4\,h\,(V - E_{na})\\
 $$
 
 - **Potassium Current:**
 
 $$
-I_K = g_K \cdot n^4 \cdot (V - E_K)
+I_k = g_k\,n^4\,(V - E_k)\\
 $$
 
 - **Leak Current:**
 
 $$
-I_L = g_L \cdot (V - E_L)
+I_{leak} = g_{leak}\,(V - E_{leak})\\
+$$
+
+- **Synaptic Input**
+
+$$
+I_{syn} = g_{syn}\,\,(V - E_{syn})
 $$
 
 ### Gating Variables
@@ -151,18 +157,10 @@ These equations form the mathematical backbone of the Hodgkin–Huxley neuron mo
 
 ### Tsodyks–Markram Synapse Model
 **Description:**  
-The Tsodyks-Markram synapse model simulates short-term synaptic plasticity by dynamically adjusting synaptic efficacy. It does so by tracking the fraction of available synaptic resources (`r`) and the utilization of these resources (`u`). The model uses these variables to compute the effective synaptic conductance (`g_syn`), which modulates the post-synaptic current. This approach captures both the depression (resource depletion) and facilitation (increased utilization) effects observed in biological synapses.
-
-The effective synaptic conductance is given by:
-
-$$
-g_{syn} = g_{max} \cdot r \cdot u
-$$
-
-where \( g_{max} \) is the maximum synaptic conductance.
+The Tsodyks-Markram synapse model simulates short-term synaptic plasticity by dynamically adjusting synaptic efficacy. It does so by tracking the fraction of available synaptic resources (`r`) and the utilization of these resources (`u`), and a decoupled (`g_syn`). This approach captures both the depression (resource depletion) and facilitation (increased utilization), as well as the variable conductions, all effects observed in biological synapses.
 
 **Dynamics:**  
-Between spike events, the available resources and utilization evolve continuously:
+Between spike events, the available resources, utilization, and conductance evolve continuously:
 
 $$
 \frac{dr}{dt} = \frac{1 - r}{\tau_r}
@@ -172,17 +170,30 @@ $$
 \frac{du}{dt} = -\frac{u}{\tau_f}
 $$
 
+$$
+\frac{dg_{syn}}{dt} = \frac{-g_{syn}}{\tau_g}
+$$
+
 At a spike event, the variables are updated as follows:
 
+
 $$
-r \rightarrow r - u \cdot r
+u = u + u_{min} \cdot (1 - u)\\$$
+
+$$
+g_{syn} = g_{syn} + g_{max} \cdot u \cdot r\\
 $$
 
 $$
-u \rightarrow u + u_{max} \cdot (1 - u)
+r = r - (u \cdot r)\\
 $$
 
-Here, ${\tau_r}$ and ${\tau_f}$ are the recovery and facilitation time constants, respectively, and $u_{\max}$ is the maximum utilization increment. $u_{\max}$ is denoted as such for the sake of programatic comprehension, but the constant is normally denoted as $U_{SE}$
+$$
+I_{syn} = g_{syn} * (V_{post} - E_{r})\\
+$$
+
+
+Here, ${\tau_r}$ and ${\tau_f}$ are the recovery and facilitation time constants, respectively, and $u_{\max}$ is the maximum utilization increment. $u_{\min}$ is denoted as such for the sake of programatic comprehension, but the constant is normally denoted as $U$
 
 ---
 
@@ -200,9 +211,9 @@ Here, ${\tau_r}$ and ${\tau_f}$ are the recovery and facilitation time constants
   params = {
       "tau_recovery": [0.2, 1.0],
       "tau_facilitation": [0.05, 0.5],
-      "u_max": [0.1, 0.7],
+      "u_min": [0.1, 0.7],
       "u": [0.1],
-      "e": [0, 0],
+      "e": [0, 5],
       "g_max": [0.1, 1.0],
       "g_syn": 0
   }
@@ -235,6 +246,10 @@ The synapse generator uses computational geometry to model connectivity:
   Duplicate connection objects are removed using the `remove_duplicate_intersections` function.
 ### Neuron Polygon Equations
 
+**Definitions:**
+$$
+*_f\;\text{denotes an axon or dendrite field}\\P_{ij}\text{= the probability of synapse formation between neuron i and j}\\\alpha = \text{scaling constant}\\A = \text{Area}\\(x_c, y_c) = \text{the centroid of the region}
+$$
 For each neuron $i$ with soma at
 
 $$
@@ -246,13 +261,14 @@ the axon and dendrite fields are defined as semicircular polygons.
 **Axon Polygon $A_i$:**
 
 $$
-A_i = { (x_i + r_a \cos \theta,\; y_i + r_a \sin \theta) \,\bigg|\, \theta \in [\theta_{a1,i},\, \theta_{a2,i}] } \cup \{(x_i, y_i)\}
+a_f^{(i)}  = \begin{cases} x = x_0 + r'^{(i)}_acos(\theta_a) \\ y = y_0 + r'^{(i)}_asin(\theta_a) \\  r'_a \in[0, r^{(i)}_a] \\ \text{for some }s \in\{1,2\}, \theta_a \begin{cases} [\theta^{(i)}_{a1}, \theta^{(i)}_{a2}] & s = 1\\ [\theta^{(i)}_{a1} + \pi, \theta^{(i)}_{a2} + \pi] & s = 2\\ \end{cases}\\ \end{cases}\\
 $$
 
 **Dendrite Polygon $D_i$:**
 
 $$
-D_i = { (x_i + r_d \cos \theta,\; y_i + r_d \sin \theta) \,\bigg|\, \theta \in [\theta_{d1,i},\, \theta_{d2,i}] } \cup \{(x_i, y_i)\}
+d_f^{(i)}  = \begin{cases} x = x_0 + r'^{(i)}_dcos(\theta_d) \\
+y = y_0 + r'^{(i)}_dsin(\theta_d) \\ r'_d \in[0, r^{(i)}]_d \\ \theta_d \in [\theta^{(i)}_{a1} + \pi,\, \theta^{(i)}_{a2} + \pi] \end{cases}\\
 $$
 
 ### Synapse Generator Equations
@@ -263,36 +279,14 @@ $$
 I_{ij} = A_i \cap D_j
 $$
 
-The area of the intersection is given by:
-
-$$
-A_{ij} = \int_{I_{ij}} dA
-$$
-
-The centroid of the intersection, representing the synapse's location, is:
-
-$$
-C_{ij} = \left( \frac{1}{A_{ij}} \int_{I_{ij}} x\, dA,\quad \frac{1}{A_{ij}} \int_{I_{ij}} y\, dA \right)
-$$
-
 The probability of forming a synaptic connection is then modeled as:
 
 $$
-P_{ij} = 1 - \exp\left(-\alpha \, A_{ij}\right)
+P_{ij} = 1 - e^{-\alpha * A_{ij}}
 $$
 
 where:
 - $\alpha$ is a scaling parameter determining how rapidly the connection probability approaches 1 as the overlap area increases.
-
-### Recursive Intersection Analysis (Optional)
-
-For cases where further refinement is desired, an existing intersection $I$ may be intersected with an additional neuron polygon $P_k$ (with $k \notin \{i,j\}$):
-
-$$
-I' = I \cap P_k
-$$
-
-provided that $I' \neq \varnothing$. Duplicate connections, identified by identical sets of pre-synaptic and post-synaptic neurons, can then be merged.
 
 **Usage Example:**  
 ```python

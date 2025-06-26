@@ -68,21 +68,23 @@ $$
 
 $$
 a_f^{(i)}  = \begin{cases} 
-x = x_0 + r'_a^{(i)}cos(\theta_a) \\
-y = y_0 + r'_a^{(i)}sin(\theta_a) \\  
-r'_a \in[0, r_a^{(i)}] \\
-\theta_a \in 
-[\theta_{a1}^{(i)}, \theta_{a2}^{(i)}] \cup
-[\theta_{a1}^{(i)} + \pi, \theta_{a2}^{(i)} + \pi]
+x = x_0 + r'^{(i)}_acos(\theta_a) \\
+y = y_0 + r'^{(i)}_asin(\theta_a) \\  
+r'_a \in[0, r^{(i)}_a] \\
+\text{for some }s \in\{1,2\},
+\theta_a \begin{cases}
+[\theta^{(i)}_{a1}, \theta^{(i)}_{a2}] &amp; s = 1\\
+[\theta^{(i)}_{a1} + \pi, \theta^{(i)}_{a2} + \pi] &amp; s = 2\\
+\end{cases}\\
 \end{cases}\\
 $$
 
 $$
 d_f^{(i)}  = \begin{cases} 
-x = x_0 + r'_d^{(i)}cos(\theta_d) \\
-y = y_0 + r'_d^{(i)}sin(\theta_d) \\  
-r'_d \in[0, r_d^{(i)}] \\
-\theta_d \in [\theta_{a1}^{(i)} + \pi,\, \theta_{a2}^{(i)} + \pi]
+x = x_0 + r'^{(i)}_dcos(\theta_d) \\
+y = y_0 + r'^{(i)}_dsin(\theta_d) \\  
+r'_d \in[0, r^{(i)}]_d \\
+\theta_d \in [\theta^{(i)}_{a1} + \pi,\, \theta^{(i)}_{a2} + \pi]
 \end{cases}\\
 $$
 
