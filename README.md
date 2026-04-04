@@ -1,4 +1,4 @@
- # Corticospinal Neuron Culture Simulation
+ # Neuron Culture Simulation
 
 A network simulation project modeling a network of neurons with stimulation. This project uses a Hodgkin–Huxley neuron model with dynamic synapses based on the Tsodyks–Markram model. It combines biophysical modeling, computational geometry for connectivity, and a Flask backend API to serve a webpage interface.
 
